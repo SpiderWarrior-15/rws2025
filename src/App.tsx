@@ -5,7 +5,6 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Navigation } from './components/Navigation';
 import { Footer } from './components/Footer';
 import { AIBuddy } from './components/AIBuddy';
-import { NoticeBoard } from './components/NoticeBoard';
 import { Home } from './pages/Home';
 import { WarriorsPicks } from './pages/WarriorsPicks';
 import { Puzzles } from './pages/Puzzles';
@@ -16,10 +15,6 @@ import { Admin } from './pages/Admin';
 import { Login } from './pages/Login';
 import { SignUp } from './pages/SignUp';
 import { Profile } from './pages/Profile';
-import { initializeNotices } from './utils/noticeManager';
-
-// Initialize notices on app start
-initializeNotices();
 
 function App() {
   return (
@@ -57,7 +52,6 @@ function App() {
           </main>
           <Footer />
           <AIBuddy />
-          <NoticeBoard />
         </div>
       </Router>
     </AuthProvider>

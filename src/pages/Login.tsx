@@ -157,14 +157,6 @@ export const Login: React.FC = () => {
               </Link>
             </p>
           </div>
-
-          <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-            <p className="text-sm text-blue-400 text-center">
-              <strong>Demo Admin Account:</strong><br />
-              Email: spiderwarrior15@gmail.com<br />
-              Password: 2012_09_17
-            </p>
-          </div>
         </GlassCard>
       </div>
     </div>

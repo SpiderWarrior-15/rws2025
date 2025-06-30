@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Settings, MessageSquare, Star, Crown, CheckCircle, XCircle, Clock, Edit, Save, X, Plus, Trash2, Eye, EyeOff, Shield, UserCheck, ToggleLeft, ToggleRight, Bell } from 'lucide-react';
+import { Users, Settings, MessageSquare, Star, Crown, CheckCircle, XCircle, Clock, Edit, Save, X, Plus, Trash2, Eye, EyeOff, Shield, UserCheck, ToggleLeft, ToggleRight } from 'lucide-react';
 import { GlassCard } from '../components/GlassCard';
 import { AnimatedButton } from '../components/AnimatedButton';
 import { WarriorCard } from '../components/WarriorCard';
@@ -7,9 +7,8 @@ import { MarkingModal } from '../components/MarkingModal';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useAuth } from '../hooks/useAuth';
 import { useSounds } from '../hooks/useSounds';
-import { UserAccount, MarkingCriteria, Mark, MarkingSummary, ContactMessage, HomepageContent, Notice, NoticeType, NoticePriority } from '../types';
+import { UserAccount, MarkingCriteria, Mark, MarkingSummary, ContactMessage, HomepageContent } from '../types';
 import { initialMarkingCriteria, initialHomepageContent } from '../utils/initialData';
-import { createNotice } from '../utils/noticeManager';
 
 export const Admin: React.FC = () => {
   const { user, updateAccount } = useAuth();
@@ -19,9 +18,8 @@ export const Admin: React.FC = () => {
   const [marks, setMarks] = useLocalStorage<Mark[]>('rws-marks', []);
   const [messages, setMessages] = useLocalStorage<ContactMessage[]>('rws-messages', []);
   const [content, setContent] = useLocalStorage<HomepageContent>('rws-homepage-content', initialHomepageContent);
-  const [notices, setNotices] = useLocalStorage<Notice[]>('rws-notices', []);
   
-  const [activeTab, setActiveTab] = useState<'accounts' | 'warriors' | 'criteria' | 'marks' | 'messages' | 'homepage' | 'notices'>('accounts');
+  const [activeTab, setActiveTab] = useState<'accounts' | 'warriors' | 'criteria' | 'marks' | 'messages' | 'homepage'>('accounts');
   const [selectedWarrior, setSelectedWarrior] = useState<UserAccount | null>(null);
   const [isMarkingModalOpen, setIsMarkingModalOpen] = useState(false);
   const [editingContent, setEditingContent] = useState(false);
@@ -34,21 +32,10 @@ export const Admin: React.FC = () => {
     category: 'participation' as const
   });
   const [isAddingCriteria, setIsAddingCriteria] = useState(false);
-  const [isAddingNotice, setIsAddingNotice] = useState(false);
-  const [newNotice, setNewNotice] = useState({
-    title: '',
-    content: '',
-    type: 'announcement' as NoticeType,
-    priority: 'medium' as NoticePriority,
-    targetAudience: 'all',
-    expiresAt: '',
-    showOnce: false
-  });
 
   // Filter accounts
   const allAccounts = accounts.filter(acc => acc.email !== 'spiderwarrior15@gmail.com'); // Exclude admin
   const unreadMessages = messages.filter(msg => !msg.isRead);
-  const activeNotices = notices.filter(n => n.isActive);
 
   // Calculate marking summaries
   const calculateMarkingSummary = (warriorId: string): MarkingSummary => {
@@ -155,46 +142,6 @@ export const Admin: React.FC = () => {
     playSound('error');
   };
 
-  const handleAddNotice = () => {
-    if (!newNotice.title.trim() || !newNotice.content.trim()) return;
-
-    const notice = createNotice(
-      newNotice.title,
-      newNotice.content,
-      newNotice.type,
-      newNotice.priority,
-      newNotice.targetAudience,
-      newNotice.expiresAt || undefined
-    );
-
-    notice.showOnce = newNotice.showOnce;
-
-    setNotices([...notices, notice]);
-    setNewNotice({
-      title: '',
-      content: '',
-      type: 'announcement',
-      priority: 'medium',
-      targetAudience: 'all',
-      expiresAt: '',
-      showOnce: false
-    });
-    setIsAddingNotice(false);
-    playSound('success');
-  };
-
-  const handleToggleNotice = (noticeId: string) => {
-    setNotices(notices.map(n => 
-      n.id === noticeId ? { ...n, isActive: !n.isActive } : n
-    ));
-    playSound('click');
-  };
-
-  const handleDeleteNotice = (noticeId: string) => {
-    setNotices(notices.filter(n => n.id !== noticeId));
-    playSound('error');
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -211,7 +158,6 @@ export const Admin: React.FC = () => {
     { id: 'criteria', label: 'Marking Criteria', icon: Star, count: criteria.filter(c => c.isActive).length },
     { id: 'marks', label: 'Warrior Marks', icon: Crown, count: marks.length },
     { id: 'messages', label: 'Messages', icon: MessageSquare, count: unreadMessages.length },
-    { id: 'notices', label: 'Notice Board', icon: Bell, count: activeNotices.length },
     { id: 'homepage', label: 'Homepage Content', icon: Settings, count: 0 }
   ];
 
@@ -258,226 +204,6 @@ export const Admin: React.FC = () => {
             </button>
           ))}
         </div>
-
-        {/* Notice Board Tab */}
-        {activeTab === 'notices' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Notice Board Management</h2>
-              <AnimatedButton
-                variant="primary"
-                icon={Plus}
-                onClick={() => setIsAddingNotice(true)}
-                soundType="click"
-              >
-                Create Notice
-              </AnimatedButton>
-            </div>
-
-            {/* Add Notice Form */}
-            {isAddingNotice && (
-              <GlassCard className="p-6">
-                <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">Create New Notice</h3>
-                <div className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Title
-                      </label>
-                      <input
-                        type="text"
-                        value={newNotice.title}
-                        onChange={(e) => setNewNotice({ ...newNotice, title: e.target.value })}
-                        className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-800 dark:text-white"
-                        placeholder="Notice title"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Type
-                      </label>
-                      <select
-                        value={newNotice.type}
-                        onChange={(e) => setNewNotice({ ...newNotice, type: e.target.value as NoticeType })}
-                        className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-800 dark:text-white"
-                      >
-                        <option value="announcement">Announcement</option>
-                        <option value="event">Event</option>
-                        <option value="achievement">Achievement</option>
-                        <option value="update">Update</option>
-                        <option value="warning">Warning</option>
-                        <option value="info">Info</option>
-                        <option value="success">Success</option>
-                        <option value="puzzle">Puzzle</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Priority
-                      </label>
-                      <select
-                        value={newNotice.priority}
-                        onChange={(e) => setNewNotice({ ...newNotice, priority: e.target.value as NoticePriority })}
-                        className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-800 dark:text-white"
-                      >
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                        <option value="urgent">Urgent</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Target Audience
-                      </label>
-                      <select
-                        value={newNotice.targetAudience}
-                        onChange={(e) => setNewNotice({ ...newNotice, targetAudience: e.target.value })}
-                        className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-800 dark:text-white"
-                      >
-                        <option value="all">All Users</option>
-                        <option value="new_users">New Users</option>
-                        <option value="commanders">Commanders</option>
-                        <option value="warriors">Warriors</option>
-                        <option value="active_users">Active Users</option>
-                        <option value="new_solvers">New Solvers</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Expires At
-                      </label>
-                      <input
-                        type="datetime-local"
-                        value={newNotice.expiresAt}
-                        onChange={(e) => setNewNotice({ ...newNotice, expiresAt: e.target.value })}
-                        className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-800 dark:text-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Content
-                    </label>
-                    <textarea
-                      value={newNotice.content}
-                      onChange={(e) => setNewNotice({ ...newNotice, content: e.target.value })}
-                      className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-800 dark:text-white resize-none"
-                      rows={4}
-                      placeholder="Notice content..."
-                    />
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="showOnce"
-                      checked={newNotice.showOnce}
-                      onChange={(e) => setNewNotice({ ...newNotice, showOnce: e.target.checked })}
-                      className="rounded border-gray-300"
-                    />
-                    <label htmlFor="showOnce" className="text-sm text-gray-700 dark:text-gray-300">
-                      Show only once per user
-                    </label>
-                  </div>
-
-                  <div className="flex space-x-4">
-                    <AnimatedButton
-                      variant="primary"
-                      onClick={handleAddNotice}
-                      disabled={!newNotice.title.trim() || !newNotice.content.trim()}
-                      soundType="success"
-                    >
-                      Create Notice
-                    </AnimatedButton>
-                    <AnimatedButton
-                      variant="ghost"
-                      onClick={() => {
-                        setIsAddingNotice(false);
-                        setNewNotice({
-                          title: '',
-                          content: '',
-                          type: 'announcement',
-                          priority: 'medium',
-                          targetAudience: 'all',
-                          expiresAt: '',
-                          showOnce: false
-                        });
-                      }}
-                      soundType="click"
-                    >
-                      Cancel
-                    </AnimatedButton>
-                  </div>
-                </div>
-              </GlassCard>
-            )}
-
-            {/* Notices List */}
-            <div className="space-y-4">
-              {notices.map((notice) => (
-                <GlassCard key={notice.id} className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-lg font-bold text-gray-800 dark:text-white">
-                          {notice.title}
-                        </h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          notice.priority === 'urgent' ? 'bg-red-500/20 text-red-400' :
-                          notice.priority === 'high' ? 'bg-yellow-500/20 text-yellow-400' :
-                          notice.priority === 'medium' ? 'bg-blue-500/20 text-blue-400' :
-                          'bg-gray-500/20 text-gray-400'
-                        }`}>
-                          {notice.priority.toUpperCase()}
-                        </span>
-                        <span className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded-full text-xs">
-                          {notice.type}
-                        </span>
-                        <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs">
-                          {notice.targetAudience.replace('_', ' ')}
-                        </span>
-                      </div>
-                      <p className="text-gray-600 dark:text-gray-400 mb-3">
-                        {notice.content}
-                      </p>
-                      <div className="text-xs text-gray-500 dark:text-gray-500">
-                        Created: {formatDate(notice.createdAt)}
-                        {notice.expiresAt && (
-                          <span className="ml-4">
-                            Expires: {formatDate(notice.expiresAt)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => handleToggleNotice(notice.id)}
-                        className={`p-2 rounded-lg transition-colors duration-300 ${
-                          notice.isActive 
-                            ? 'bg-green-500/20 text-green-400' 
-                            : 'bg-gray-500/20 text-gray-400'
-                        }`}
-                      >
-                        {notice.isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                      </button>
-                      <button
-                        onClick={() => handleDeleteNotice(notice.id)}
-                        className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors duration-300"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </GlassCard>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Account Management Tab */}
         {activeTab === 'accounts' && (
@@ -548,6 +274,453 @@ export const Admin: React.FC = () => {
                 ))}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Warriors Tab */}
+        {activeTab === 'warriors' && (
+          <div className="space-y-8">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center">
+                <Shield className="w-6 h-6 mr-2 text-purple-500" />
+                Warriors Management ({allAccounts.length})
+              </h2>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {allAccounts.map((warrior) => (
+                  <WarriorCard
+                    key={warrior.id}
+                    warrior={warrior}
+                    summary={calculateMarkingSummary(warrior.id)}
+                    onMark={handleMarkWarrior}
+                    showMarkButton={true}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Marking Criteria Tab */}
+        {activeTab === 'criteria' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Marking Criteria</h2>
+              <AnimatedButton
+                variant="primary"
+                icon={Plus}
+                onClick={() => setIsAddingCriteria(true)}
+                soundType="click"
+              >
+                Add Criteria
+              </AnimatedButton>
+            </div>
+
+            {/* Add Criteria Form */}
+            {isAddingCriteria && (
+              <GlassCard className="p-6">
+                <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">Add New Criteria</h3>
+                <div className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Name
+                      </label>
+                      <input
+                        type="text"
+                        value={newCriteria.name}
+                        onChange={(e) => setNewCriteria({ ...newCriteria, name: e.target.value })}
+                        className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-800 dark:text-white"
+                        placeholder="Criteria name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Max Score
+                      </label>
+                      <input
+                        type="number"
+                        value={newCriteria.maxScore}
+                        onChange={(e) => setNewCriteria({ ...newCriteria, maxScore: Number(e.target.value) })}
+                        className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-800 dark:text-white"
+                        min="1"
+                        max="100"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Category
+                    </label>
+                    <select
+                      value={newCriteria.category}
+                      onChange={(e) => setNewCriteria({ ...newCriteria, category: e.target.value as any })}
+                      className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-800 dark:text-white"
+                    >
+                      <option value="participation">Participation</option>
+                      <option value="creativity">Creativity</option>
+                      <option value="technical">Technical</option>
+                      <option value="leadership">Leadership</option>
+                      <option value="collaboration">Collaboration</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      value={newCriteria.description}
+                      onChange={(e) => setNewCriteria({ ...newCriteria, description: e.target.value })}
+                      className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-800 dark:text-white resize-none"
+                      rows={3}
+                      placeholder="Describe this criteria..."
+                    />
+                  </div>
+
+                  <div className="flex space-x-4">
+                    <AnimatedButton
+                      variant="primary"
+                      onClick={handleAddCriteria}
+                      disabled={!newCriteria.name.trim() || !newCriteria.description.trim()}
+                      soundType="success"
+                    >
+                      Add Criteria
+                    </AnimatedButton>
+                    <AnimatedButton
+                      variant="ghost"
+                      onClick={() => {
+                        setIsAddingCriteria(false);
+                        setNewCriteria({
+                          name: '',
+                          description: '',
+                          maxScore: 10,
+                          category: 'participation'
+                        });
+                      }}
+                      soundType="click"
+                    >
+                      Cancel
+                    </AnimatedButton>
+                  </div>
+                </div>
+              </GlassCard>
+            )}
+
+            {/* Criteria List */}
+            <div className="space-y-4">
+              {criteria.map((criterion) => (
+                <GlassCard key={criterion.id} className="p-6">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <h3 className="text-lg font-bold text-gray-800 dark:text-white">
+                          {criterion.name}
+                        </h3>
+                        <span className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded-full text-xs">
+                          {criterion.category}
+                        </span>
+                        <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-xs">
+                          Max: {criterion.maxScore}
+                        </span>
+                      </div>
+                      <p className="text-gray-600 dark:text-gray-400 mb-3">
+                        {criterion.description}
+                      </p>
+                      <div className="text-xs text-gray-500 dark:text-gray-500">
+                        Created: {formatDate(criterion.createdAt)}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => handleToggleCriteria(criterion.id)}
+                        className={`p-2 rounded-lg transition-colors duration-300 ${
+                          criterion.isActive 
+                            ? 'bg-green-500/20 text-green-400' 
+                            : 'bg-gray-500/20 text-gray-400'
+                        }`}
+                      >
+                        {criterion.isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCriteria(criterion.id)}
+                        className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors duration-300"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </GlassCard>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Warrior Marks Tab */}
+        {activeTab === 'marks' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Warrior Marks</h2>
+            <div className="space-y-4">
+              {marks.map((mark) => {
+                const warrior = allAccounts.find(w => w.id === mark.warriorId);
+                const criterion = criteria.find(c => c.id === mark.criteriaId);
+                
+                return (
+                  <GlassCard key={mark.id} className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-2">
+                          {warrior?.name || 'Unknown Warrior'}
+                        </h3>
+                        <div className="flex items-center space-x-4 mb-3">
+                          <span className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-sm">
+                            {criterion?.name || 'Unknown Criteria'}
+                          </span>
+                          <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-sm font-bold">
+                            {mark.score} / {criterion?.maxScore || 0}
+                          </span>
+                        </div>
+                        {mark.feedback && (
+                          <p className="text-gray-600 dark:text-gray-400 mb-3">
+                            {mark.feedback}
+                          </p>
+                        )}
+                        <div className="text-xs text-gray-500 dark:text-gray-500">
+                          Marked: {formatDate(mark.markedAt)} by {mark.markedBy}
+                        </div>
+                      </div>
+                    </div>
+                  </GlassCard>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Messages Tab */}
+        {activeTab === 'messages' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Contact Messages</h2>
+            <div className="space-y-4">
+              {messages.map((message) => (
+                <GlassCard key={message.id} className={`p-6 ${!message.isRead ? 'border-yellow-500/30' : ''}`}>
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <h3 className="text-lg font-bold text-gray-800 dark:text-white">
+                          {message.name}
+                        </h3>
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          {message.email}
+                        </span>
+                        {!message.isRead && (
+                          <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-xs">
+                            New
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-gray-600 dark:text-gray-400 mb-3">
+                        {message.message}
+                      </p>
+                      <div className="text-xs text-gray-500 dark:text-gray-500">
+                        Received: {formatDate(message.timestamp)}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {!message.isRead && (
+                        <button
+                          onClick={() => handleMarkMessageAsRead(message.id)}
+                          className="p-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors duration-300"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDeleteMessage(message.id)}
+                        className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors duration-300"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </GlassCard>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Homepage Content Tab */}
+        {activeTab === 'homepage' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Homepage Content</h2>
+              {!editingContent ? (
+                <AnimatedButton
+                  variant="primary"
+                  icon={Edit}
+                  onClick={() => {
+                    setEditingContent(true);
+                    setTempContent(content);
+                  }}
+                  soundType="click"
+                >
+                  Edit Content
+                </AnimatedButton>
+              ) : (
+                <div className="flex space-x-2">
+                  <AnimatedButton
+                    variant="primary"
+                    icon={Save}
+                    onClick={handleSaveContent}
+                    soundType="success"
+                  >
+                    Save Changes
+                  </AnimatedButton>
+                  <AnimatedButton
+                    variant="ghost"
+                    icon={X}
+                    onClick={() => {
+                      setEditingContent(false);
+                      setTempContent(content);
+                    }}
+                    soundType="click"
+                  >
+                    Cancel
+                  </AnimatedButton>
+                </div>
+              )}
+            </div>
+
+            <GlassCard className="p-6">
+              <div className="space-y-6">
+                {/* Hero Section */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">Hero Section</h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Hero Title
+                      </label>
+                      {editingContent ? (
+                        <input
+                          type="text"
+                          value={tempContent.heroTitle}
+                          onChange={(e) => setTempContent({ ...tempContent, heroTitle: e.target.value })}
+                          className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-800 dark:text-white"
+                        />
+                      ) : (
+                        <p className="text-gray-800 dark:text-white">{content.heroTitle}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Welcome Badge Text
+                      </label>
+                      {editingContent ? (
+                        <input
+                          type="text"
+                          value={tempContent.welcomeBadgeText}
+                          onChange={(e) => setTempContent({ ...tempContent, welcomeBadgeText: e.target.value })}
+                          className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-800 dark:text-white"
+                        />
+                      ) : (
+                        <p className="text-gray-800 dark:text-white">{content.welcomeBadgeText}</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Hero Description
+                    </label>
+                    {editingContent ? (
+                      <textarea
+                        value={tempContent.heroDescription}
+                        onChange={(e) => setTempContent({ ...tempContent, heroDescription: e.target.value })}
+                        className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-800 dark:text-white resize-none"
+                        rows={3}
+                      />
+                    ) : (
+                      <p className="text-gray-800 dark:text-white">{content.heroDescription}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tagline */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">Tagline</h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Main Tagline
+                      </label>
+                      {editingContent ? (
+                        <input
+                          type="text"
+                          value={tempContent.tagline}
+                          onChange={(e) => setTempContent({ ...tempContent, tagline: e.target.value })}
+                          className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-800 dark:text-white"
+                        />
+                      ) : (
+                        <p className="text-gray-800 dark:text-white">{content.tagline}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Tagline Subtext
+                      </label>
+                      {editingContent ? (
+                        <input
+                          type="text"
+                          value={tempContent.taglineSubtext}
+                          onChange={(e) => setTempContent({ ...tempContent, taglineSubtext: e.target.value })}
+                          className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-800 dark:text-white"
+                        />
+                      ) : (
+                        <p className="text-gray-800 dark:text-white">{content.taglineSubtext}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* About Section */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">About Section</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        About Title
+                      </label>
+                      {editingContent ? (
+                        <input
+                          type="text"
+                          value={tempContent.aboutTitle}
+                          onChange={(e) => setTempContent({ ...tempContent, aboutTitle: e.target.value })}
+                          className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-800 dark:text-white"
+                        />
+                      ) : (
+                        <p className="text-gray-800 dark:text-white">{content.aboutTitle}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        About Description
+                      </label>
+                      {editingContent ? (
+                        <textarea
+                          value={tempContent.aboutDescription}
+                          onChange={(e) => setTempContent({ ...tempContent, aboutDescription: e.target.value })}
+                          className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-800 dark:text-white resize-none"
+                          rows={4}
+                        />
+                      ) : (
+                        <p className="text-gray-800 dark:text-white">{content.aboutDescription}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </GlassCard>
           </div>
         )}
 
