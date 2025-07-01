@@ -233,18 +233,25 @@ export const Events: React.FC = () => {
                         {/* Admin Controls */}
                         {isAdmin && (
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex space-x-2">
-                            <button
+                            <AnimatedButton
+                              variant="secondary"
+                              size="sm"
+                              icon={Edit}
                               onClick={() => handleEditEvent(event)}
-                              className="p-2 bg-blue-500/80 hover:bg-blue-600/80 text-white rounded-lg transition-colors duration-300"
+                              soundType="click"
                             >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button
+                              Edit
+                            </AnimatedButton>
+                            <AnimatedButton
+                              variant="ghost"
+                              size="sm"
+                              icon={Trash2}
                               onClick={() => handleDeleteEvent(event.id)}
-                              className="p-2 bg-red-500/80 hover:bg-red-600/80 text-white rounded-lg transition-colors duration-300"
+                              className="text-red-500 hover:text-red-600"
+                              soundType="error"
                             >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                              Delete
+                            </AnimatedButton>
                           </div>
                         )}
                       </div>

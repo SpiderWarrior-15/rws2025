@@ -17,12 +17,19 @@ export const GlassCard: React.FC<GlassCardProps> = ({
       backdrop-blur-md 
       border border-white/20 dark:border-gray-700/30 
       rounded-2xl 
-      ${hover ? 'hover:bg-white/20 dark:hover:bg-gray-800/30 hover:border-white/30 dark:hover:border-gray-600/50 hover:scale-105' : ''} 
-      transition-all duration-300 
+      ${hover ? 'hover:bg-white/20 dark:hover:bg-gray-800/30 hover:border-white/30 dark:hover:border-gray-600/50 hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/10' : ''} 
+      transition-all duration-500 ease-out
       shadow-lg hover:shadow-xl
+      relative overflow-hidden
       ${className}
     `}>
-      {children}
+      {/* Subtle gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none" />
+      
+      {/* Content */}
+      <div className="relative z-10">
+        {children}
+      </div>
     </div>
   );
 };

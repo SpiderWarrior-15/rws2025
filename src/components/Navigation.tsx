@@ -5,6 +5,7 @@ import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../hooks/useAuth';
 import { AnimatedButton } from './AnimatedButton';
 import { SoundToggle } from './SoundToggle';
+import { GlobalSearch } from './GlobalSearch';
 
 export const Navigation: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -100,6 +101,11 @@ export const Navigation: React.FC = () => {
 
           {/* Right Side Controls */}
           <div className="flex items-center space-x-4">
+            {/* Global Search */}
+            <div className="hidden md:block">
+              <GlobalSearch />
+            </div>
+
             {/* Sound Toggle */}
             <SoundToggle />
 
@@ -203,6 +209,11 @@ export const Navigation: React.FC = () => {
         {isMobileMenuOpen && (
           <div className="md:hidden bg-white/10 dark:bg-gray-900/20 backdrop-blur-md rounded-lg mt-2 mb-4 border border-white/20 dark:border-gray-700/30">
             <div className="px-2 pt-2 pb-3 space-y-1">
+              {/* Mobile Search */}
+              <div className="px-3 py-2">
+                <GlobalSearch />
+              </div>
+              
               {navItems.map((item) => (
                 <Link
                   key={item.path}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Settings, MessageSquare, Star, Crown, CheckCircle, XCircle, Clock, Edit, Save, X, Plus, Trash2, Eye, EyeOff, Shield, UserCheck, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Users, Settings, MessageSquare, Star, Crown, CheckCircle, XCircle, Clock, Edit, Save, X, Plus, Trash2, Eye, EyeOff, Shield, UserCheck, ToggleLeft, ToggleRight, ArrowUpDown } from 'lucide-react';
 import { GlassCard } from '../components/GlassCard';
 import { AnimatedButton } from '../components/AnimatedButton';
 import { WarriorCard } from '../components/WarriorCard';
@@ -66,6 +66,13 @@ export const Admin: React.FC = () => {
     if (!account) return;
 
     const newRole = account.role === 'Warrior' ? 'Commander' : 'Warrior';
+    
+    // Update in accounts array
+    setAccounts(accounts.map(acc => 
+      acc.id === accountId ? { ...acc, role: newRole } : acc
+    ));
+    
+    // Also update through auth context for real-time sync
     updateAccount(accountId, { role: newRole });
     playSound('success');
   };
@@ -154,10 +161,10 @@ export const Admin: React.FC = () => {
 
   const tabs = [
     { id: 'accounts', label: 'Account Management', icon: Users, count: allAccounts.length },
-    { id: 'warriors', label: 'Warriors', icon: Shield, count: allAccounts.length },
+    { id: 'warriors', label: 'Warriors List', icon: Shield, count: allAccounts.length },
     { id: 'criteria', label: 'Marking Criteria', icon: Star, count: criteria.filter(c => c.isActive).length },
     { id: 'marks', label: 'Warrior Marks', icon: Crown, count: marks.length },
-    { id: 'messages', label: 'Messages', icon: MessageSquare, count: unreadMessages.length },
+    { id: 'messages', label: 'Contact Messages', icon: MessageSquare, count: unreadMessages.length },
     { id: 'homepage', label: 'Homepage Content', icon: Settings, count: 0 }
   ];
 
@@ -218,9 +225,13 @@ export const Admin: React.FC = () => {
                   <GlassCard key={account.id} className="p-6 cursor-pointer hover:scale-105 transition-transform duration-300" onClick={() => setSelectedAccount(account)}>
                     <div className="flex items-center space-x-3 mb-4">
                       <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                        <span className="text-white font-bold">
-                          {account.name.charAt(0).toUpperCase()}
-                        </span>
+                        {account.avatar ? (
+                          <img src={account.avatar} alt={account.name} className="w-full h-full rounded-full object-cover" />
+                        ) : (
+                          <span className="text-white font-bold">
+                            {account.name.charAt(0).toUpperCase()}
+                          </span>
+                        )}
                       </div>
                       <div>
                         <h3 className="font-bold text-gray-800 dark:text-white">{account.name}</h3>
@@ -252,14 +263,15 @@ export const Admin: React.FC = () => {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Role Toggle:</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Promote/Demote:</span>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleRoleToggle(account.id);
                         }}
-                        className="flex items-center space-x-2 text-sm"
+                        className="flex items-center space-x-2 text-sm hover:scale-105 transition-transform duration-200"
                       >
+                        <ArrowUpDown className="w-4 h-4 text-purple-500" />
                         {account.role === 'Commander' ? (
                           <ToggleRight className="w-6 h-6 text-yellow-500" />
                         ) : (
@@ -277,25 +289,129 @@ export const Admin: React.FC = () => {
           </div>
         )}
 
-        {/* Warriors Tab */}
+        {/* Warriors List Tab */}
         {activeTab === 'warriors' && (
           <div className="space-y-8">
             <div>
               <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center">
                 <Shield className="w-6 h-6 mr-2 text-purple-500" />
-                Warriors Management ({allAccounts.length})
+                Warriors List ({allAccounts.length})
               </h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {allAccounts.map((warrior) => (
-                  <WarriorCard
-                    key={warrior.id}
-                    warrior={warrior}
-                    summary={calculateMarkingSummary(warrior.id)}
-                    onMark={handleMarkWarrior}
-                    showMarkButton={true}
-                  />
-                ))}
-              </div>
+              <GlassCard className="p-6">
+                <div className="space-y-4">
+                  {allAccounts.map((warrior) => (
+                    <div key={warrior.id} className="flex items-center justify-between p-4 bg-white/5 dark:bg-gray-800/20 rounded-lg hover:bg-white/10 dark:hover:bg-gray-700/30 transition-colors duration-300">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center">
+                          {warrior.avatar ? (
+                            <img src={warrior.avatar} alt={warrior.name} className="w-full h-full rounded-full object-cover" />
+                          ) : (
+                            <span className="text-white font-bold">
+                              {warrior.name.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-800 dark:text-white">{warrior.name}</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">{warrior.email}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-4">
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          warrior.role === 'Commander' 
+                            ? 'bg-yellow-500/20 text-yellow-400' 
+                            : 'bg-blue-500/20 text-blue-400'
+                        }`}>
+                          {warrior.role}
+                        </span>
+                        
+                        <button
+                          onClick={() => handleRoleToggle(warrior.id)}
+                          className="flex items-center space-x-2 px-3 py-1 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-colors duration-300"
+                        >
+                          <ArrowUpDown className="w-4 h-4" />
+                          <span className="text-sm">Toggle</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            </div>
+          </div>
+        )}
+
+        {/* Contact Messages Tab */}
+        {activeTab === 'messages' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center">
+              <MessageSquare className="w-6 h-6 mr-2 text-green-500" />
+              Contact Messages ({messages.length})
+            </h2>
+            <div className="space-y-4">
+              {messages.length === 0 ? (
+                <GlassCard className="p-8 text-center">
+                  <MessageSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-medium text-gray-600 dark:text-gray-400 mb-2">
+                    No messages yet
+                  </h3>
+                  <p className="text-gray-500 dark:text-gray-500">
+                    Messages from the contact form will appear here
+                  </p>
+                </GlassCard>
+              ) : (
+                messages.map((message) => (
+                  <GlassCard key={message.id} className={`p-6 ${!message.isRead ? 'border-yellow-500/30 bg-yellow-500/5' : ''}`}>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <h3 className="text-lg font-bold text-gray-800 dark:text-white">
+                            {message.name}
+                          </h3>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            {message.email}
+                          </span>
+                          {!message.isRead && (
+                            <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-medium">
+                              New
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-400 mb-3 leading-relaxed">
+                          {message.message}
+                        </p>
+                        <div className="text-xs text-gray-500 dark:text-gray-500">
+                          Received: {formatDate(message.timestamp)}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2 ml-4">
+                        {!message.isRead && (
+                          <AnimatedButton
+                            variant="secondary"
+                            size="sm"
+                            icon={CheckCircle}
+                            onClick={() => handleMarkMessageAsRead(message.id)}
+                            soundType="success"
+                          >
+                            Mark Read
+                          </AnimatedButton>
+                        )}
+                        <AnimatedButton
+                          variant="ghost"
+                          size="sm"
+                          icon={Trash2}
+                          onClick={() => handleDeleteMessage(message.id)}
+                          className="text-red-500 hover:text-red-600"
+                          soundType="error"
+                        >
+                          Delete
+                        </AnimatedButton>
+                      </div>
+                    </div>
+                  </GlassCard>
+                ))
+              )}
             </div>
           </div>
         )}
@@ -493,58 +609,6 @@ export const Admin: React.FC = () => {
                   </GlassCard>
                 );
               })}
-            </div>
-          </div>
-        )}
-
-        {/* Messages Tab */}
-        {activeTab === 'messages' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Contact Messages</h2>
-            <div className="space-y-4">
-              {messages.map((message) => (
-                <GlassCard key={message.id} className={`p-6 ${!message.isRead ? 'border-yellow-500/30' : ''}`}>
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-lg font-bold text-gray-800 dark:text-white">
-                          {message.name}
-                        </h3>
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                          {message.email}
-                        </span>
-                        {!message.isRead && (
-                          <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-xs">
-                            New
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-gray-600 dark:text-gray-400 mb-3">
-                        {message.message}
-                      </p>
-                      <div className="text-xs text-gray-500 dark:text-gray-500">
-                        Received: {formatDate(message.timestamp)}
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {!message.isRead && (
-                        <button
-                          onClick={() => handleMarkMessageAsRead(message.id)}
-                          className="p-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors duration-300"
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDeleteMessage(message.id)}
-                        className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors duration-300"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </GlassCard>
-              ))}
             </div>
           </div>
         )}

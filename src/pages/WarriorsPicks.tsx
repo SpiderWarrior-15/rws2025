@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Plus, Edit, Trash2, Music } from 'lucide-react';
+import { Play, Plus, Edit, Trash2, Music, Volume2, VolumeX } from 'lucide-react';
 import { GlassCard } from '../components/GlassCard';
 import { AnimatedButton } from '../components/AnimatedButton';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -15,6 +15,7 @@ export const WarriorsPicks: React.FC = () => {
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
   const [newSong, setNewSong] = useState({ title: '', artist: '', embedUrl: '' });
+  const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
 
   const isAdmin = user?.accountType === 'admin';
 
@@ -48,6 +49,9 @@ export const WarriorsPicks: React.FC = () => {
 
   const handleDeleteSong = (id: string) => {
     setSongs(songs.filter(song => song.id !== id));
+    if (currentlyPlaying === id) {
+      setCurrentlyPlaying(null);
+    }
     playSound('error');
   };
 
@@ -58,7 +62,21 @@ export const WarriorsPicks: React.FC = () => {
 
   const getEmbedUrl = (url: string) => {
     const videoId = extractVideoId(url);
-    return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+    return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1` : url;
+  };
+
+  const getThumbnailUrl = (url: string) => {
+    const videoId = extractVideoId(url);
+    return videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : '';
+  };
+
+  const handlePlaySong = (songId: string) => {
+    if (currentlyPlaying === songId) {
+      setCurrentlyPlaying(null);
+    } else {
+      setCurrentlyPlaying(songId);
+      playSound('success');
+    }
   };
 
   return (
@@ -162,28 +180,65 @@ export const WarriorsPicks: React.FC = () => {
         {/* Songs Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-8">
           {songs.map((song) => (
-            <GlassCard key={song.id} className="overflow-hidden">
-              <div className="aspect-video">
-                <iframe
-                  src={getEmbedUrl(song.embedUrl)}
-                  title={song.title}
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="w-full h-full"
-                ></iframe>
+            <GlassCard key={song.id} className="overflow-hidden group">
+              <div className="relative aspect-video">
+                {currentlyPlaying === song.id ? (
+                  <iframe
+                    src={getEmbedUrl(song.embedUrl)}
+                    title={song.title}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full"
+                  />
+                ) : (
+                  <div className="relative w-full h-full bg-gradient-to-br from-purple-600/20 to-blue-600/20 flex items-center justify-center">
+                    <img
+                      src={getThumbnailUrl(song.embedUrl)}
+                      alt={song.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <button
+                        onClick={() => handlePlaySong(song.id)}
+                        className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-white/30 transition-all duration-300 hover:scale-110 group"
+                      >
+                        <Play className="w-8 h-8 text-white ml-1 group-hover:scale-110 transition-transform duration-300" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
+              
               <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
-                  {song.title}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">
-                  by {song.artist}
-                </p>
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
+                      {song.title}
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">
+                      by {song.artist}
+                    </p>
+                  </div>
+                  
+                  <button
+                    onClick={() => handlePlaySong(song.id)}
+                    className="p-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-colors duration-300"
+                  >
+                    {currentlyPlaying === song.id ? (
+                      <VolumeX className="w-5 h-5" />
+                    ) : (
+                      <Volume2 className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
                 
                 {/* Admin Controls */}
                 {isAdmin && (
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <AnimatedButton
                       variant="secondary"
                       size="sm"

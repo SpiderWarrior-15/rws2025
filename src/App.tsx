@@ -15,6 +15,8 @@ import { Admin } from './pages/Admin';
 import { Login } from './pages/Login';
 import { SignUp } from './pages/SignUp';
 import { Profile } from './pages/Profile';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
+import { License } from './pages/License';
 
 function App() {
   return (
@@ -32,6 +34,8 @@ function App() {
               <Route path="/events" element={<Events />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/chat" element={<Chat />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/license" element={<License />} />
               <Route 
                 path="/profile" 
                 element={
