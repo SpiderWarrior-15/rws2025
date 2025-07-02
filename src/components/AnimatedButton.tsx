@@ -45,7 +45,11 @@ export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
       }
     };
 
-    return baseStyles[theme][variant];
+    // Fallback handling
+    const validTheme = baseStyles[theme] ? theme : 'royal';
+    const validVariant = baseStyles[validTheme][variant] ? variant : 'primary';
+
+    return baseStyles[validTheme][validVariant];
   };
 
   const sizes = {
@@ -75,8 +79,16 @@ export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
       {variant === 'primary' && (
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
       )}
-      
-      {Icon && <Icon className={size === 'lg' ? 'w-6 h-6' : size === 'sm' ? 'w-4 h-4' : 'w-5 h-5'} />}
+
+      {Icon && (
+        <Icon
+          className={
+            size === 'lg' ? 'w-6 h-6' :
+            size === 'sm' ? 'w-4 h-4' :
+            'w-5 h-5'
+          }
+        />
+      )}
       <span className="relative z-10">{children}</span>
     </motion.button>
   );
