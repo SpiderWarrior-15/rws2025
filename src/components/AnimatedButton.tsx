@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { DivideIcon as LucideIcon } from 'lucide-react';
-import { useSounds } from '../hooks/useSounds';
+import React from 'react';
+import { motion } from 'framer-motion';
+import { LucideIcon } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface AnimatedButtonProps {
   children: React.ReactNode;
@@ -11,7 +12,6 @@ interface AnimatedButtonProps {
   className?: string;
   disabled?: boolean;
   type?: 'button' | 'submit' | 'reset';
-  soundType?: 'click' | 'success' | 'error';
 }
 
 export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
@@ -23,17 +23,29 @@ export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
   className = '',
   disabled = false,
   type = 'button',
-  soundType = 'click'
 }) => {
-  const { playSound } = useSounds();
-  const [isPressed, setIsPressed] = useState(false);
+  const { theme } = useTheme();
 
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-xl transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none active:scale-95 relative overflow-hidden group';
-  
-  const variants = {
-    primary: 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl hover:shadow-purple-500/25 focus:ring-purple-500',
-    secondary: 'bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-gray-700/50 hover:border-white/30 dark:hover:border-gray-600/50 focus:ring-gray-500 hover:shadow-lg',
-    ghost: 'text-gray-700 dark:text-gray-300 hover:bg-white/10 dark:hover:bg-gray-800/50 focus:ring-gray-500 hover:shadow-md'
+  const getThemeStyles = () => {
+    const baseStyles = {
+      royal: {
+        primary: 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-purple-500/25',
+        secondary: 'bg-white/10 dark:bg-gray-800/50 border border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20',
+        ghost: 'text-purple-600 dark:text-purple-400 hover:bg-purple-500/10'
+      },
+      cyber: {
+        primary: 'bg-gradient-to-r from-cyan-500 to-green-500 hover:from-cyan-600 hover:to-green-600 text-black shadow-lg hover:shadow-cyan-500/25',
+        secondary: 'bg-white/10 dark:bg-gray-800/50 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20',
+        ghost: 'text-cyan-400 hover:bg-cyan-500/10'
+      },
+      'night-ops': {
+        primary: 'bg-gradient-to-r from-gray-700 to-gray-900 hover:from-gray-800 hover:to-black text-white shadow-lg hover:shadow-gray-500/25',
+        secondary: 'bg-white/10 dark:bg-gray-800/50 border border-gray-500/30 text-gray-300 hover:bg-gray-500/20',
+        ghost: 'text-gray-300 hover:bg-gray-500/10'
+      }
+    };
+
+    return baseStyles[theme][variant];
   };
 
   const sizes = {
@@ -42,35 +54,22 @@ export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
     lg: 'px-8 py-4 text-lg space-x-3'
   };
 
-  const handleClick = () => {
-    if (disabled) return;
-    
-    setIsPressed(true);
-    setTimeout(() => setIsPressed(false), 150);
-    
-    // Play sound effect
-    playSound(soundType);
-    
-    if (onClick) {
-      onClick();
-    }
-  };
-
-  const handleMouseEnter = () => {
-    if (!disabled) {
-      playSound('hover');
-    }
-  };
-
   return (
-    <button
+    <motion.button
       type={type}
-      onClick={handleClick}
-      onMouseEnter={handleMouseEnter}
+      onClick={onClick}
       disabled={disabled}
-      className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${className} ${
-        isPressed ? 'scale-90' : ''
-      }`}
+      className={`
+        inline-flex items-center justify-center font-medium rounded-xl 
+        transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 
+        disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group
+        ${getThemeStyles()} ${sizes[size]} ${className}
+      `}
+      whileHover={{ scale: disabled ? 1 : 1.05 }}
+      whileTap={{ scale: disabled ? 1 : 0.95 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
     >
       {/* Shimmer effect for primary buttons */}
       {variant === 'primary' && (
@@ -79,6 +78,6 @@ export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
       
       {Icon && <Icon className={size === 'lg' ? 'w-6 h-6' : size === 'sm' ? 'w-4 h-4' : 'w-5 h-5'} />}
       <span className="relative z-10">{children}</span>
-    </button>
+    </motion.button>
   );
 };
