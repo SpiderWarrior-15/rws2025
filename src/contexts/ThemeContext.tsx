@@ -19,12 +19,17 @@ export const useTheme = () => {
   return context;
 };
 
+// Validate if theme is one of the allowed values
+const isValidTheme = (value: string | null): value is Theme => {
+  return ['royal', 'cyber', 'night-ops'].includes(value || '');
+};
+
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem('rws-theme');
-    return (saved as Theme) || 'royal';
+    return isValidTheme(saved) ? (saved as Theme) : 'royal';
   });
-  
+
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('rws-dark-mode');
     return saved ? JSON.parse(saved) : true;
