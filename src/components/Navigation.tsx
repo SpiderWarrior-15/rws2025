@@ -58,11 +58,6 @@ export const Navigation: React.FC = () => {
     { name: 'Contact', path: '/contact' },
   ];
 
-  // Only add admin panel for admin users
-  if (user?.accountType === 'admin') {
-    navItems.push({ name: 'Admin Panel', path: '/admin' });
-  }
-
   const handleLogout = () => {
     logout();
     setIsUserMenuOpen(false);
@@ -269,6 +264,19 @@ export const Navigation: React.FC = () => {
                         <UserCircle className="w-4 h-4" />
                         <span>View Profile</span>
                       </Link>
+                      
+                      {/* Admin Panel - Only show for admin users */}
+                      {user?.accountType === 'admin' && (
+                        <Link
+                          to="/admin"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="w-full flex items-center space-x-2 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-white/10 dark:hover:bg-gray-800/50 transition-colors duration-300"
+                        >
+                          <Crown className="w-4 h-4" />
+                          <span>Admin Panel</span>
+                        </Link>
+                      )}
+                      
                       <button
                         onClick={handleLogout}
                         className="w-full flex items-center space-x-2 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-white/10 dark:hover:bg-gray-800/50 transition-colors duration-300"
@@ -365,13 +373,26 @@ export const Navigation: React.FC = () => {
                 ))}
                 
                 {user && (
-                  <Link
-                    to="/profile"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-white/10 dark:hover:bg-gray-800/50 transition-all duration-300"
-                  >
-                    Profile
-                  </Link>
+                  <>
+                    <Link
+                      to="/profile"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-white/10 dark:hover:bg-gray-800/50 transition-all duration-300"
+                    >
+                      Profile
+                    </Link>
+                    
+                    {/* Admin Panel for mobile - Only show for admin users */}
+                    {user?.accountType === 'admin' && (
+                      <Link
+                        to="/admin"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-white/10 dark:hover:bg-gray-800/50 transition-all duration-300"
+                      >
+                        Admin Panel
+                      </Link>
+                    )}
+                  </>
                 )}
                 
                 {!user && (
