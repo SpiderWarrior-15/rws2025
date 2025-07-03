@@ -15,7 +15,6 @@ import {
   UserAccount,
   MarkingCriteria,
   Mark,
-  MarkingSummary,
   ContactMessage,
   HomepageContent,
   PuzzleAttempt,
@@ -24,7 +23,6 @@ import {
 import {
   initialMarkingCriteria,
   initialHomepageContent,
-  getScoreByDifficulty,
 } from '../utils/initialData';
 
 export const Admin: React.FC = () => {
@@ -33,20 +31,20 @@ export const Admin: React.FC = () => {
     'rws-accounts',
     []
   );
-  const [criteria, setCriteria] = useLocalStorage<MarkingCriteria[]>(
+  const [criteria] = useLocalStorage<MarkingCriteria[]>(
     'rws-marking-criteria',
     initialMarkingCriteria
   );
-  const [marks, setMarks] = useLocalStorage<Mark[]>('rws-marks', []);
+  const [marks] = useLocalStorage<Mark[]>('rws-marks', []);
   const [messages, setMessages] = useLocalStorage<ContactMessage[]>(
     'rws-messages',
     []
   );
-  const [content, setContent] = useLocalStorage<HomepageContent>(
+  const [content] = useLocalStorage<HomepageContent>(
     'rws-homepage-content',
     initialHomepageContent
   );
-  const [attempts, setAttempts] = useLocalStorage<PuzzleAttempt[]>(
+  const [attempts] = useLocalStorage<PuzzleAttempt[]>(
     'rws-puzzle-attempts',
     []
   );
@@ -62,7 +60,6 @@ export const Admin: React.FC = () => {
     | 'puzzle-correction'
   >('accounts');
 
-  // Filter accounts
   const allAccounts = accounts.filter(
     (acc) => acc.email !== 'spiderwarrior15@gmail.com'
   );
@@ -72,15 +69,12 @@ export const Admin: React.FC = () => {
   const handleRoleToggle = (accountId: string) => {
     const account = accounts.find((acc) => acc.id === accountId);
     if (!account) return;
-
     const newRole = account.role === 'Warrior' ? 'Commander' : 'Warrior';
-
     setAccounts(
       accounts.map((acc) =>
         acc.id === accountId ? { ...acc, role: newRole } : acc
       )
     );
-
     updateAccount(accountId, { role: newRole });
   };
 
@@ -97,44 +91,18 @@ export const Admin: React.FC = () => {
   };
 
   const tabs = [
-    {
-      id: 'accounts',
-      label: 'Account Management',
-      icon: Users,
-      count: allAccounts.length,
-    },
-    {
-      id: 'warriors',
-      label: 'Warriors List',
-      icon: Shield,
-      count: allAccounts.length,
-    },
-    {
-      id: 'puzzle-correction',
-      label: 'Puzzle Correction',
-      icon: Brain,
-      count: pendingAttempts.length,
-    },
-    {
-      id: 'criteria',
-      label: 'Marking Criteria',
-      icon: Star,
-      count: criteria.filter((c) => c.isActive).length,
-    },
+    { id: 'accounts', label: 'Account Management', icon: Users, count: allAccounts.length },
+    { id: 'warriors', label: 'Warriors List', icon: Shield, count: allAccounts.length },
+    { id: 'puzzle-correction', label: 'Puzzle Correction', icon: Brain, count: pendingAttempts.length },
+    { id: 'criteria', label: 'Marking Criteria', icon: Star, count: criteria.filter((c) => c.isActive).length },
     { id: 'marks', label: 'Warrior Marks', icon: Crown, count: marks.length },
-    {
-      id: 'messages',
-      label: 'Contact Messages',
-      icon: MessageSquare,
-      count: unreadMessages.length,
-    },
+    { id: 'messages', label: 'Contact Messages', icon: MessageSquare, count: unreadMessages.length },
     { id: 'homepage', label: 'Homepage Content', icon: Settings, count: 0 },
   ];
 
   return (
     <div className="min-h-screen pt-20 pb-12 bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-purple-900/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Tabs */}
         <nav className="flex space-x-4 mb-6 flex-wrap">
           {tabs.map((tab) => (
             <button
@@ -157,30 +125,86 @@ export const Admin: React.FC = () => {
           ))}
         </nav>
 
-        {/* Content */}
         <div className="bg-white/10 rounded-lg p-6 shadow-lg min-h-[300px] text-white">
-          {/* Accounts */}
+          {/* Account Management */}
           {activeTab === 'accounts' && (
             <div>
-              {allAccounts.length === 0 && (
+              {allAccounts.length === 0 ? (
                 <p className="text-gray-300">No accounts found.</p>
+              ) : (
+                allAccounts.map((acc) => (
+                  <GlassCard key={acc.id} className="mb-3 p-4 flex justify-between items-center">
+                    <div>
+                      <p className="font-semibold text-lg">{acc.name}</p>
+                      <p className="text-sm text-gray-300">{acc.email}</p>
+                      <p className="text-sm text-gray-400 italic">Role: {acc.role}</p>
+                    </div>
+                    <button
+                      onClick={() => handleRoleToggle(acc.id)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
+                    >
+                      Toggle Role
+                    </button>
+                  </GlassCard>
+                ))
               )}
+            </div>
+          )}
+
+          {/* Warriors List */}
+          {activeTab === 'warriors' && (
+            <div>
               {allAccounts.map((acc) => (
-                <GlassCard
-                  key={acc.id}
-                  className="mb-3 p-4 flex justify-between items-center"
-                >
-                  <div>
-                    <p className="font-semibold text-lg">{acc.name}</p>
-                    <p className="text-sm text-gray-300">{acc.email}</p>
-                    <p className="text-sm text-gray-400 italic">Role: {acc.role}</p>
-                  </div>
-                  <button
-                    onClick={() => handleRoleToggle(acc.id)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
-                  >
-                    Toggle Role
-                  </button>
+                <GlassCard key={acc.id} className="mb-3 p-4">
+                  <p className="font-semibold">{acc.name}</p>
+                  <p className="text-sm text-gray-400">{acc.email}</p>
+                  <p className="text-sm italic">Role: {acc.role}</p>
+                </GlassCard>
+              ))}
+            </div>
+          )}
+
+          {/* Puzzle Correction */}
+          {activeTab === 'puzzle-correction' && (
+            <div>
+              {pendingAttempts.length === 0 ? (
+                <p className="text-gray-300">No pending attempts to review.</p>
+              ) : (
+                pendingAttempts.map((attempt) => {
+                  const puzzle = puzzles.find(p => p.id === attempt.puzzleId);
+                  return (
+                    <GlassCard key={attempt.id} className="mb-3 p-4">
+                      <p><strong>Q:</strong> {puzzle?.question}</p>
+                      <p><strong>Answer:</strong> {attempt.userAnswer}</p>
+                      <p><strong>User ID:</strong> {attempt.userId}</p>
+                    </GlassCard>
+                  );
+                })
+              )}
+            </div>
+          )}
+
+          {/* Marking Criteria */}
+          {activeTab === 'criteria' && (
+            <div>
+              {criteria.map((c) => (
+                <GlassCard key={c.id} className="mb-3 p-4">
+                  <p className="font-semibold">{c.name}</p>
+                  <p className="text-sm text-gray-300">{c.description}</p>
+                  <p className="text-sm italic">Max Score: {c.maxScore} | Category: {c.category}</p>
+                </GlassCard>
+              ))}
+            </div>
+          )}
+
+          {/* Warrior Marks */}
+          {activeTab === 'marks' && (
+            <div>
+              {marks.map((mark) => (
+                <GlassCard key={mark.id} className="mb-3 p-4">
+                  <p className="font-semibold">Warrior ID: {mark.warriorId}</p>
+                  <p className="text-sm">Score: {mark.score} | By: {mark.markedBy}</p>
+                  <p className="text-sm italic text-gray-400">{mark.feedback}</p>
                 </GlassCard>
               ))}
             </div>
@@ -189,46 +213,42 @@ export const Admin: React.FC = () => {
           {/* Messages */}
           {activeTab === 'messages' && (
             <div>
-              {unreadMessages.length === 0 && (
+              {unreadMessages.length === 0 ? (
                 <p className="text-gray-300">No unread messages.</p>
+              ) : (
+                unreadMessages.map((msg) => (
+                  <GlassCard key={msg.id} className="mb-3 p-4">
+                    <p><strong>From:</strong> {msg.name} ({msg.email})</p>
+                    <p className="mt-2">{msg.message}</p>
+                    <div className="mt-3 space-x-3">
+                      <button
+                        onClick={() => handleMarkMessageAsRead(msg.id)}
+                        className="text-green-500 hover:underline"
+                      >
+                        Mark as Read
+                      </button>
+                      <button
+                        onClick={() => handleDeleteMessage(msg.id)}
+                        className="text-red-500 hover:underline"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </GlassCard>
+                ))
               )}
-              {unreadMessages.map((msg) => (
-                <GlassCard
-                  key={msg.id}
-                  className="mb-3 p-4"
-                >
-                  <p>
-                    <strong>From:</strong> {msg.name} ({msg.email})
-                  </p>
-                  <p className="mt-2">{msg.message}</p>
-                  <div className="mt-3 space-x-3">
-                    <button
-                      onClick={() => handleMarkMessageAsRead(msg.id)}
-                      className="text-green-500 hover:underline"
-                    >
-                      Mark as Read
-                    </button>
-                    <button
-                      onClick={() => handleDeleteMessage(msg.id)}
-                      className="text-red-500 hover:underline"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </GlassCard>
-              ))}
             </div>
           )}
 
-          {/* TODO: Add other tabs UI similarly */}
-          {(activeTab === 'warriors' ||
-            activeTab === 'criteria' ||
-            activeTab === 'marks' ||
-            activeTab === 'homepage' ||
-            activeTab === 'puzzle-correction') && (
-            <p className="text-gray-300 italic">
-              This section is under construction. Coming soon!
-            </p>
+          {/* Homepage Content */}
+          {activeTab === 'homepage' && (
+            <div>
+              <GlassCard className="p-4">
+                <p className="text-lg font-semibold">{content.heroTitle}</p>
+                <p className="text-sm text-gray-300">{content.heroDescription}</p>
+                <p className="mt-2 text-sm italic text-gray-400">Updated by: {content.updatedBy}</p>
+              </GlassCard>
+            </div>
           )}
         </div>
       </div>
