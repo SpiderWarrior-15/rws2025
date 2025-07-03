@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, User, Music, Calendar, MessageCircle, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useNavigate } from 'react-router-dom';
 import { UserAccount, Song, Event, ChatMessage } from '../types';
@@ -15,7 +16,7 @@ interface SearchResult {
 
 export const GlobalSearch: React.FC = () => {
   const navigate = useNavigate();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -29,7 +30,9 @@ export const GlobalSearch: React.FC = () => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+        setIsExpanded(false);
+        setQuery('');
+        setResults([]);
       }
     };
 
@@ -90,15 +93,16 @@ export const GlobalSearch: React.FC = () => {
       }
     });
 
-    setResults(searchResults.slice(0, 8)); // Limit to 8 results
+    setResults(searchResults.slice(0, 8));
   }, [query, accounts, songs, events, messages]);
 
   const handleResultClick = (result: SearchResult) => {
     if (result.path) {
       navigate(result.path);
     }
-    setIsOpen(false);
+    setIsExpanded(false);
     setQuery('');
+    setResults([]);
   };
 
   const getIcon = (type: string) => {
@@ -113,80 +117,185 @@ export const GlobalSearch: React.FC = () => {
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
-      setIsOpen(false);
+      setIsExpanded(false);
       setQuery('');
+      setResults([]);
     }
+  };
+
+  const handleSearchClick = () => {
+    setIsExpanded(true);
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 200);
   };
 
   return (
     <div ref={searchRef} className="relative">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setIsOpen(true);
+      <motion.div 
+        className="relative overflow-hidden"
+        animate={{ 
+          width: isExpanded ? 320 : 48,
+        }}
+        transition={{ 
+          type: "spring", 
+          stiffness: 300, 
+          damping: 30,
+          duration: 0.4
+        }}
+      >
+        <motion.div
+          className="relative h-12 bg-gradient-to-r from-purple-500/20 to-blue-500/20 backdrop-blur-md border border-purple-500/30 rounded-full overflow-hidden group cursor-pointer"
+          whileHover={{ 
+            scale: 1.02,
+            boxShadow: "0 0 30px rgba(147, 51, 234, 0.4)"
           }}
-          onFocus={() => setIsOpen(true)}
-          onKeyDown={handleKeyDown}
-          className="w-64 pl-10 pr-10 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800 dark:text-white text-sm placeholder-gray-500"
-          placeholder="Search warriors, songs, events..."
-        />
-        {query && (
-          <button
-            onClick={() => {
-              setQuery('');
-              setIsOpen(false);
+          onClick={!isExpanded ? handleSearchClick : undefined}
+        >
+          {/* Animated background gradient */}
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-purple-600/30 via-blue-600/30 to-purple-600/30"
+            animate={{
+              x: ['-100%', '100%'],
             }}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            transition={{
+              duration: 3,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+          />
+          
+          {/* Search icon */}
+          <motion.div
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 z-10"
+            animate={{
+              rotate: isExpanded ? 360 : 0,
+              scale: isExpanded ? 1.1 : 1
+            }}
+            transition={{ duration: 0.3 }}
           >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-      </div>
+            <Search className="w-5 h-5 text-purple-300" />
+          </motion.div>
 
-      {isOpen && (query.length >= 2 || results.length > 0) && (
-        <div className="absolute top-full left-0 right-0 mt-2 z-50">
-          <GlassCard className="p-2 max-h-96 overflow-y-auto">
-            {results.length === 0 && query.length >= 2 ? (
-              <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                No results found for "{query}"
-              </div>
-            ) : (
-              <div className="space-y-1">
-                {results.map((result) => {
-                  const Icon = getIcon(result.type);
-                  return (
-                    <button
-                      key={`${result.type}-${result.id}`}
-                      onClick={() => handleResultClick(result)}
-                      className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-white/10 dark:hover:bg-gray-800/50 transition-colors duration-200 text-left"
-                    >
-                      <Icon className="w-4 h-4 text-purple-400 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-800 dark:text-white truncate">
-                          {result.title}
-                        </div>
-                        {result.subtitle && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                            {result.subtitle}
-                          </div>
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-400 capitalize">
-                        {result.type}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+          {/* Input field */}
+          <AnimatePresence>
+            {isExpanded && (
+              <motion.input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="w-full h-full pl-12 pr-12 bg-transparent text-white placeholder-purple-300 focus:outline-none text-sm font-medium"
+                placeholder="Search the galaxy..."
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ delay: 0.2 }}
+              />
             )}
-          </GlassCard>
-        </div>
-      )}
+          </AnimatePresence>
+
+          {/* Close button */}
+          <AnimatePresence>
+            {isExpanded && query && (
+              <motion.button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setQuery('');
+                  setResults([]);
+                }}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-purple-300 hover:text-white transition-colors z-10"
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0 }}
+                whileHover={{ scale: 1.2 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <X className="w-4 h-4" />
+              </motion.button>
+            )}
+          </AnimatePresence>
+
+          {/* Pulsing border animation */}
+          <motion.div
+            className="absolute inset-0 border-2 border-purple-400/50 rounded-full"
+            animate={{
+              scale: [1, 1.05, 1],
+              opacity: [0.5, 0.8, 0.5]
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+        </motion.div>
+      </motion.div>
+
+      {/* Search Results */}
+      <AnimatePresence>
+        {isExpanded && (query.length >= 2 || results.length > 0) && (
+          <motion.div
+            className="absolute top-full left-0 right-0 mt-3 z-50"
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+          >
+            <GlassCard className="p-2 max-h-96 overflow-y-auto border-purple-500/30 bg-gradient-to-br from-purple-900/20 to-blue-900/20">
+              {results.length === 0 && query.length >= 2 ? (
+                <motion.div 
+                  className="p-6 text-center text-purple-300"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>No results found for "{query}"</p>
+                </motion.div>
+              ) : (
+                <div className="space-y-1">
+                  {results.map((result, index) => {
+                    const Icon = getIcon(result.type);
+                    return (
+                      <motion.button
+                        key={`${result.type}-${result.id}`}
+                        onClick={() => handleResultClick(result)}
+                        className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-blue-500/20 transition-all duration-300 text-left group"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        whileHover={{ scale: 1.02 }}
+                      >
+                        <motion.div
+                          className="p-2 rounded-full bg-gradient-to-r from-purple-500/30 to-blue-500/30"
+                          whileHover={{ rotate: 360 }}
+                          transition={{ duration: 0.5 }}
+                        >
+                          <Icon className="w-4 h-4 text-purple-300 flex-shrink-0" />
+                        </motion.div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-white truncate group-hover:text-purple-200 transition-colors">
+                            {result.title}
+                          </div>
+                          {result.subtitle && (
+                            <div className="text-xs text-purple-300 truncate">
+                              {result.subtitle}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-xs text-purple-400 capitalize opacity-75 group-hover:opacity-100 transition-opacity">
+                          {result.type}
+                        </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              )}
+            </GlassCard>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
