@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Bot, X, Sparkles, MessageCircle } from 'lucide-react';
 import { GlassCard } from './GlassCard';
 import { AnimatedButton } from './AnimatedButton';
-import { useSounds } from '../hooks/useSounds';
 
 interface AIBuddyIntroProps {
   onClose: () => void;
@@ -10,7 +9,6 @@ interface AIBuddyIntroProps {
 }
 
 export const AIBuddyIntro: React.FC<AIBuddyIntroProps> = ({ onClose, onStartChat }) => {
-  const { playSound } = useSounds();
   const [currentTip, setCurrentTip] = useState(0);
 
   const tips = [
@@ -30,12 +28,10 @@ export const AIBuddyIntro: React.FC<AIBuddyIntroProps> = ({ onClose, onStartChat
   }, [tips.length]);
 
   const handleStartChat = () => {
-    playSound('success');
     onStartChat();
   };
 
   const handleClose = () => {
-    playSound('click');
     onClose();
   };
 
@@ -80,7 +76,6 @@ export const AIBuddyIntro: React.FC<AIBuddyIntroProps> = ({ onClose, onStartChat
             icon={MessageCircle}
             onClick={handleStartChat}
             className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-            soundType="success"
           >
             Start Chatting
           </AnimatedButton>
@@ -89,7 +84,6 @@ export const AIBuddyIntro: React.FC<AIBuddyIntroProps> = ({ onClose, onStartChat
             variant="ghost"
             onClick={handleClose}
             className="w-full"
-            soundType="click"
           >
             Maybe Later
           </AnimatedButton>

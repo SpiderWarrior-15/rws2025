@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Bot, Send, X, Minimize2, Maximize2, Sparkles, MessageCircle } from 'lucide-react';
 import { GlassCard } from './GlassCard';
 import { AnimatedButton } from './AnimatedButton';
-import { useSounds } from '../hooks/useSounds';
+import { useAIBuddy } from '../hooks/useAIBuddy';
 
 interface AIMessage {
   id: string;
@@ -13,7 +13,7 @@ interface AIMessage {
 }
 
 export const AIBuddy: React.FC = () => {
-  const { playSound } = useSounds();
+  const { showIntro, markIntroAsSeen, hideIntro } = useAIBuddy();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<AIMessage[]>([
@@ -118,7 +118,6 @@ export const AIBuddy: React.FC = () => {
     setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
     setIsTyping(true);
-    playSound('click');
 
     // Simulate AI thinking time
     setTimeout(() => {
@@ -131,7 +130,6 @@ export const AIBuddy: React.FC = () => {
 
       setMessages(prev => [...prev, aiResponse]);
       setIsTyping(false);
-      playSound('success');
     }, 1000 + Math.random() * 2000); // Random delay between 1-3 seconds
   };
 
@@ -144,16 +142,15 @@ export const AIBuddy: React.FC = () => {
 
   const toggleOpen = () => {
     setIsOpen(!isOpen);
-    if (!isOpen) {
-      playSound('success');
-    } else {
-      playSound('click');
-    }
   };
 
   const toggleMinimize = () => {
     setIsMinimized(!isMinimized);
-    playSound('click');
+  };
+
+  const handleStartChat = () => {
+    markIntroAsSeen();
+    setIsOpen(true);
   };
 
   if (!isOpen) {
@@ -270,7 +267,6 @@ export const AIBuddy: React.FC = () => {
                   icon={Send}
                   onClick={handleSendMessage}
                   disabled={!inputMessage.trim() || isTyping}
-                  soundType="success"
                 >
                   Send
                 </AnimatedButton>

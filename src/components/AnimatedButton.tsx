@@ -12,6 +12,7 @@ interface AnimatedButtonProps {
   className?: string;
   disabled?: boolean;
   type?: 'button' | 'submit' | 'reset';
+  soundType?: 'click' | 'success' | 'error';
 }
 
 export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
@@ -23,6 +24,7 @@ export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
   className = '',
   disabled = false,
   type = 'button',
+  soundType = 'click',
 }) => {
   const { theme } = useTheme();
 
@@ -96,38 +98,4 @@ export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
       <span className="relative z-10">{children}</span>
     </motion.button>
   );
-};
-const getThemeStyles = () => {
-  const baseStyles = {
-    royal: {
-      primary:
-        'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-purple-500/25',
-      secondary:
-        'bg-white/10 dark:bg-gray-800/50 border border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20',
-      ghost: 'text-purple-600 dark:text-purple-400 hover:bg-purple-500/10',
-    },
-    cyber: {
-      primary:
-        'bg-gradient-to-r from-cyan-500 to-green-500 hover:from-cyan-600 hover:to-green-600 text-black shadow-lg hover:shadow-cyan-500/25',
-      secondary:
-        'bg-white/10 dark:bg-gray-800/50 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20',
-      ghost: 'text-cyan-400 hover:bg-cyan-500/10',
-    },
-    'night-ops': {
-      primary:
-        'bg-gradient-to-r from-gray-700 to-gray-900 hover:from-gray-800 hover:to-black text-white shadow-lg hover:shadow-gray-500/25',
-      secondary:
-        'bg-white/10 dark:bg-gray-800/50 border border-gray-500/30 text-gray-300 hover:bg-gray-500/20',
-      ghost: 'text-gray-300 hover:bg-gray-500/10',
-    },
-  };
-
-  // Safe fallback for unknown theme or variant
-  const fallbackTheme = 'royal';
-  const fallbackVariant = 'primary';
-
-  const themeStyles = baseStyles[theme] ?? baseStyles[fallbackTheme];
-  const buttonStyle = themeStyles[variant] ?? themeStyles[fallbackVariant];
-
-  return buttonStyle;
 };
