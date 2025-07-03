@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Moon, Sun, Menu, X, User, LogOut, UserCircle, Crown, Shield, Search } from 'lucide-react';
+import { Moon, Sun, Menu, X, User, LogOut, UserCircle, Crown, Shield, ChevronDown } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
 import { AnimatedButton } from './AnimatedButton';
-import { ThemeSwitcher } from './ThemeSwitcher';
 import { GlobalSearch } from './GlobalSearch';
 
 export const Navigation: React.FC = () => {
@@ -14,6 +13,7 @@ export const Navigation: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const location = useLocation();
 
   useEffect(() => {
@@ -25,15 +25,36 @@ export const Navigation: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setActiveDropdown(null);
+      setIsUserMenuOpen(false);
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   const navItems = [
     { name: 'Home', path: '/' },
-    { name: 'Puzzles', path: '/puzzles' },
-    { name: 'News', path: '/news' },
-    { name: 'Announcements', path: '/announcements' },
-    { name: "Warriors' Picks", path: '/warriors-picks' },
+    {
+      name: 'Community',
+      dropdown: [
+        { name: 'Puzzles', path: '/puzzles', description: 'Brain challenges & competitions' },
+        { name: 'Chat', path: '/chat', description: 'Connect with warriors' },
+        { name: 'Events', path: '/events', description: 'Upcoming gatherings' },
+      ]
+    },
+    {
+      name: 'Content',
+      dropdown: [
+        { name: 'News', path: '/news', description: 'Latest tech updates' },
+        { name: 'Announcements', path: '/announcements', description: 'Important updates' },
+        { name: "Warriors' Picks", path: '/warriors-picks', description: 'Community favorites' },
+      ]
+    },
     { name: 'Tools', path: '/tools' },
-    { name: 'Events', path: '/events' },
-    { name: 'Chat', path: '/chat' },
     { name: 'Contact', path: '/contact' },
   ];
 
@@ -58,6 +79,16 @@ export const Navigation: React.FC = () => {
   };
 
   const RoleIcon = getRoleIcon();
+
+  const handleDropdownClick = (e: React.MouseEvent, dropdownName: string) => {
+    e.stopPropagation();
+    setActiveDropdown(activeDropdown === dropdownName ? null : dropdownName);
+  };
+
+  const handleUserMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsUserMenuOpen(!isUserMenuOpen);
+  };
 
   return (
     <motion.nav
@@ -99,20 +130,70 @@ export const Navigation: React.FC = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-6">
+          <div className="hidden lg:flex items-center space-x-2">
             {navItems.map((item) => (
-              <motion.div key={item.path} whileHover={{ y: -2 }}>
-                <Link
-                  to={item.path}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 hover:bg-white/10 dark:hover:bg-gray-800/50 ${
-                    location.pathname === item.path
-                      ? 'text-yellow-500 dark:text-yellow-400 bg-white/20 dark:bg-gray-800/50'
-                      : 'text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400'
-                  }`}
-                >
-                  {item.name}
-                </Link>
-              </motion.div>
+              <div key={item.name} className="relative">
+                {item.dropdown ? (
+                  <div className="relative">
+                    <button
+                      onClick={(e) => handleDropdownClick(e, item.name)}
+                      className={`flex items-center space-x-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-white/10 dark:hover:bg-gray-800/50 ${
+                        item.dropdown.some(subItem => location.pathname === subItem.path)
+                          ? 'text-yellow-500 dark:text-yellow-400 bg-white/20 dark:bg-gray-800/50'
+                          : 'text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400'
+                      }`}
+                    >
+                      <span>{item.name}</span>
+                      <ChevronDown 
+                        className={`w-4 h-4 transition-transform duration-200 ${
+                          activeDropdown === item.name ? 'rotate-180' : ''
+                        }`} 
+                      />
+                    </button>
+
+                    <AnimatePresence>
+                      {activeDropdown === item.name && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                          transition={{ duration: 0.2 }}
+                          className="absolute top-full left-0 mt-2 w-64 bg-white/10 dark:bg-gray-900/20 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-xl shadow-xl overflow-hidden"
+                        >
+                          {item.dropdown.map((subItem, index) => (
+                            <Link
+                              key={subItem.path}
+                              to={subItem.path}
+                              onClick={() => setActiveDropdown(null)}
+                              className={`block px-4 py-3 transition-all duration-200 hover:bg-white/10 dark:hover:bg-gray-800/50 ${
+                                location.pathname === subItem.path
+                                  ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'
+                                  : 'text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400'
+                              } ${index !== item.dropdown.length - 1 ? 'border-b border-white/10 dark:border-gray-700/30' : ''}`}
+                            >
+                              <div className="font-medium">{subItem.name}</div>
+                              <div className="text-xs opacity-75 mt-1">{subItem.description}</div>
+                            </Link>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                ) : (
+                  <motion.div whileHover={{ y: -2 }}>
+                    <Link
+                      to={item.path}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-white/10 dark:hover:bg-gray-800/50 ${
+                        location.pathname === item.path
+                          ? 'text-yellow-500 dark:text-yellow-400 bg-white/20 dark:bg-gray-800/50'
+                          : 'text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400'
+                      }`}
+                    >
+                      {item.name}
+                    </Link>
+                  </motion.div>
+                )}
+              </div>
             ))}
           </div>
 
@@ -122,9 +203,6 @@ export const Navigation: React.FC = () => {
             <div className="hidden md:block">
               <GlobalSearch />
             </div>
-
-            {/* Theme Switcher */}
-            <ThemeSwitcher />
 
             {/* Dark Mode Toggle */}
             <motion.button
@@ -144,7 +222,7 @@ export const Navigation: React.FC = () => {
             {user ? (
               <div className="relative">
                 <motion.button
-                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  onClick={handleUserMenuClick}
                   className="flex items-center space-x-2 p-2 rounded-lg bg-white/10 dark:bg-gray-800/50 hover:bg-white/20 dark:hover:bg-gray-700/50 transition-all duration-300"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -157,6 +235,7 @@ export const Navigation: React.FC = () => {
                   <span className="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-300">
                     {user.username}
                   </span>
+                  <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                 </motion.button>
 
                 {/* User Dropdown */}
@@ -166,7 +245,7 @@ export const Navigation: React.FC = () => {
                       initial={{ opacity: 0, scale: 0.8, y: -10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.8, y: -10 }}
-                      className="absolute right-0 mt-2 w-48 bg-white/10 dark:bg-gray-900/20 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg shadow-lg"
+                      className="absolute right-0 mt-2 w-48 bg-white/10 dark:bg-gray-900/20 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg shadow-lg overflow-hidden"
                     >
                       <div className="p-4 border-b border-white/10 dark:border-gray-700/30">
                         <p className="text-sm font-medium text-gray-800 dark:text-white">{user.username}</p>
@@ -239,7 +318,7 @@ export const Navigation: React.FC = () => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="lg:hidden bg-white/10 dark:bg-gray-900/20 backdrop-blur-md rounded-lg mt-2 mb-4 border border-white/20 dark:border-gray-700/30"
+              className="lg:hidden bg-white/10 dark:bg-gray-900/20 backdrop-blur-md rounded-lg mt-2 mb-4 border border-white/20 dark:border-gray-700/30 overflow-hidden"
             >
               <div className="px-2 pt-2 pb-3 space-y-1">
                 {/* Mobile Search */}
@@ -248,18 +327,41 @@ export const Navigation: React.FC = () => {
                 </div>
                 
                 {navItems.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={`block px-3 py-2 rounded-md text-base font-medium transition-all duration-300 ${
-                      location.pathname === item.path
-                        ? 'text-yellow-500 dark:text-yellow-400 bg-white/20 dark:bg-gray-800/50'
-                        : 'text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-white/10 dark:hover:bg-gray-800/50'
-                    }`}
-                  >
-                    {item.name}
-                  </Link>
+                  <div key={item.name}>
+                    {item.dropdown ? (
+                      <div>
+                        <div className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                          {item.name}
+                        </div>
+                        {item.dropdown.map((subItem) => (
+                          <Link
+                            key={subItem.path}
+                            to={subItem.path}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className={`block px-6 py-2 rounded-md text-base font-medium transition-all duration-300 ${
+                              location.pathname === subItem.path
+                                ? 'text-yellow-500 dark:text-yellow-400 bg-white/20 dark:bg-gray-800/50'
+                                : 'text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-white/10 dark:hover:bg-gray-800/50'
+                            }`}
+                          >
+                            {subItem.name}
+                          </Link>
+                        ))}
+                      </div>
+                    ) : (
+                      <Link
+                        to={item.path}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className={`block px-3 py-2 rounded-md text-base font-medium transition-all duration-300 ${
+                          location.pathname === item.path
+                            ? 'text-yellow-500 dark:text-yellow-400 bg-white/20 dark:bg-gray-800/50'
+                            : 'text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-white/10 dark:hover:bg-gray-800/50'
+                        }`}
+                      >
+                        {item.name}
+                      </Link>
+                    )}
+                  </div>
                 ))}
                 
                 {user && (

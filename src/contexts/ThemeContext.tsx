@@ -1,10 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type Theme = 'royal' | 'cyber' | 'night-ops';
-
 interface ThemeContextType {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
 }
@@ -19,26 +15,11 @@ export const useTheme = () => {
   return context;
 };
 
-// Validate if theme is one of the allowed values
-const isValidTheme = (value: string | null): value is Theme => {
-  return ['royal', 'cyber', 'night-ops'].includes(value || '');
-};
-
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem('rws-theme');
-    return isValidTheme(saved) ? (saved as Theme) : 'royal';
-  });
-
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('rws-dark-mode');
     return saved ? JSON.parse(saved) : true;
   });
-
-  useEffect(() => {
-    localStorage.setItem('rws-theme', theme);
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
 
   useEffect(() => {
     localStorage.setItem('rws-dark-mode', JSON.stringify(isDarkMode));
@@ -52,7 +33,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, isDarkMode, toggleDarkMode }}>
+    <ThemeContext.Provider value={{ isDarkMode, toggleDarkMode }}>
       {children}
     </ThemeContext.Provider>
   );

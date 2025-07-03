@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { DivideIcon as LucideIcon } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
 
 interface AnimatedButtonProps {
   children: React.ReactNode;
@@ -12,7 +11,6 @@ interface AnimatedButtonProps {
   className?: string;
   disabled?: boolean;
   type?: 'button' | 'submit' | 'reset';
-  soundType?: 'click' | 'success' | 'error';
 }
 
 export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
@@ -24,34 +22,19 @@ export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
   className = '',
   disabled = false,
   type = 'button',
-  soundType = 'click',
 }) => {
-  const { theme } = useTheme();
-
-  // Define all possible styles per theme + variant
-  const baseStyles = {
-    royal: {
-      primary: 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-purple-500/25',
-      secondary: 'bg-white/10 dark:bg-gray-800/50 border border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20',
-      ghost: 'text-purple-600 dark:text-purple-400 hover:bg-purple-500/10',
-    },
-    cyber: {
-      primary: 'bg-gradient-to-r from-cyan-500 to-green-500 hover:from-cyan-600 hover:to-green-600 text-black shadow-lg hover:shadow-cyan-500/25',
-      secondary: 'bg-white/10 dark:bg-gray-800/50 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20',
-      ghost: 'text-cyan-400 hover:bg-cyan-500/10',
-    },
-    'night-ops': {
-      primary: 'bg-gradient-to-r from-gray-700 to-gray-900 hover:from-gray-800 hover:to-black text-white shadow-lg hover:shadow-gray-500/25',
-      secondary: 'bg-white/10 dark:bg-gray-800/50 border border-gray-500/30 text-gray-300 hover:bg-gray-500/20',
-      ghost: 'text-gray-300 hover:bg-gray-500/10',
-    },
-  };
-
-  // Safely resolve style based on theme & variant
-  const getThemeStyles = () => {
-    const validTheme = baseStyles[theme] ? theme : 'royal';
-    const style = baseStyles[validTheme][variant];
-    return style || baseStyles[validTheme]['primary'];
+  // Simplified single theme styles
+  const getVariantStyles = () => {
+    switch (variant) {
+      case 'primary':
+        return 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-purple-500/25';
+      case 'secondary':
+        return 'bg-white/10 dark:bg-gray-800/50 border border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20';
+      case 'ghost':
+        return 'text-purple-600 dark:text-purple-400 hover:bg-purple-500/10';
+      default:
+        return 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-purple-500/25';
+    }
   };
 
   // Sizes
@@ -68,9 +51,9 @@ export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
       disabled={disabled}
       className={`
         inline-flex items-center justify-center font-medium rounded-xl 
-        transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 
+        transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500
         disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group
-        ${getThemeStyles()} ${sizes[size]} ${className}
+        ${getVariantStyles()} ${sizes[size]} ${className}
       `}
       whileHover={{ scale: disabled ? 1 : 1.05 }}
       whileTap={{ scale: disabled ? 1 : 0.95 }}
