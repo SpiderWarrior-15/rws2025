@@ -186,7 +186,7 @@ export const GlobalSearch: React.FC = () => {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="w-full h-full pl-12 pr-12 bg-transparent text-white placeholder-purple-300 focus:outline-none text-sm font-medium"
+                className="w-full h-full pl-12 pr-12 bg-transparent text-white placeholder-purple-300 focus:outline-none text-sm font-medium selectable"
                 placeholder="Search the galaxy..."
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

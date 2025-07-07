@@ -36,6 +36,32 @@ export const Navigation: React.FC = () => {
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.top = `-${window.scrollY}px`;
+    } else {
+      const scrollY = document.body.style.top;
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.top = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.top = '';
+    };
+  }, [isMobileMenuOpen]);
+
   const navItems = [
     { name: 'Home', path: '/' },
     {
@@ -85,6 +111,14 @@ export const Navigation: React.FC = () => {
     setIsUserMenuOpen(!isUserMenuOpen);
   };
 
+  const handleMobileMenuToggle = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
     <motion.nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -108,7 +142,7 @@ export const Navigation: React.FC = () => {
               <img 
                 src="/image.png" 
                 alt="Royal Warriors Squad" 
-                className="w-full h-full object-contain filter drop-shadow-lg"
+                className="w-full h-full object-contain filter drop-shadow-lg interactive"
               />
             </motion.div>
             <div className="hidden sm:block">
@@ -223,7 +257,7 @@ export const Navigation: React.FC = () => {
                   whileTap={{ scale: 0.95 }}
                 >
                   {user.avatar ? (
-                    <img src={user.avatar} alt={user.name} className="w-6 h-6 rounded-full" />
+                    <img src={user.avatar} alt={user.name} className="w-6 h-6 rounded-full interactive" />
                   ) : (
                     <RoleIcon className={`w-5 h-5 ${getRoleColor()}`} />
                   )}
@@ -305,7 +339,7 @@ export const Navigation: React.FC = () => {
 
             {/* Mobile menu button */}
             <motion.button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              onClick={handleMobileMenuToggle}
               className="lg:hidden p-2 rounded-lg bg-white/10 dark:bg-gray-800/50 hover:bg-white/20 dark:hover:bg-gray-700/50 transition-all duration-300"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -326,11 +360,15 @@ export const Navigation: React.FC = () => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="lg:hidden bg-white/10 dark:bg-gray-900/20 backdrop-blur-md rounded-lg mt-2 mb-4 border border-white/20 dark:border-gray-700/30 overflow-hidden"
+              className="lg:hidden fixed inset-x-0 top-20 bottom-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-white/20 dark:border-gray-700/30 overflow-y-auto"
+              style={{ 
+                maxHeight: 'calc(100vh - 80px)',
+                overscrollBehavior: 'contain'
+              }}
             >
-              <div className="px-2 pt-2 pb-3 space-y-1">
+              <div className="px-4 py-6 space-y-4">
                 {/* Mobile Search */}
-                <div className="px-3 py-2">
+                <div className="mb-6">
                   <GlobalSearch />
                 </div>
                 
@@ -345,22 +383,23 @@ export const Navigation: React.FC = () => {
                           <Link
                             key={subItem.path}
                             to={subItem.path}
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className={`block px-6 py-2 rounded-md text-base font-medium transition-all duration-300 ${
+                            onClick={closeMobileMenu}
+                            className={`block px-6 py-3 rounded-md text-base font-medium transition-all duration-300 ${
                               location.pathname === subItem.path
                                 ? 'text-yellow-500 dark:text-yellow-400 bg-white/20 dark:bg-gray-800/50'
                                 : 'text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-white/10 dark:hover:bg-gray-800/50'
                             }`}
                           >
-                            {subItem.name}
+                            <div>{subItem.name}</div>
+                            <div className="text-sm opacity-75">{subItem.description}</div>
                           </Link>
                         ))}
                       </div>
                     ) : (
                       <Link
                         to={item.path}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className={`block px-3 py-2 rounded-md text-base font-medium transition-all duration-300 ${
+                        onClick={closeMobileMenu}
+                        className={`block px-3 py-3 rounded-md text-base font-medium transition-all duration-300 ${
                           location.pathname === item.path
                             ? 'text-yellow-500 dark:text-yellow-400 bg-white/20 dark:bg-gray-800/50'
                             : 'text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-white/10 dark:hover:bg-gray-800/50'
@@ -374,35 +413,50 @@ export const Navigation: React.FC = () => {
                 
                 {user && (
                   <>
-                    <Link
-                      to="/profile"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-white/10 dark:hover:bg-gray-800/50 transition-all duration-300"
-                    >
-                      Profile
-                    </Link>
-                    
-                    {/* Admin Panel for mobile - Only show for admin users */}
-                    {user?.accountType === 'admin' && (
+                    <div className="border-t border-white/20 dark:border-gray-700/30 pt-4 mt-6">
+                      <div className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                        Account
+                      </div>
                       <Link
-                        to="/admin"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-white/10 dark:hover:bg-gray-800/50 transition-all duration-300"
+                        to="/profile"
+                        onClick={closeMobileMenu}
+                        className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-white/10 dark:hover:bg-gray-800/50 transition-all duration-300"
                       >
-                        Admin Panel
+                        Profile
                       </Link>
-                    )}
+                      
+                      {/* Admin Panel for mobile - Only show for admin users */}
+                      {user?.accountType === 'admin' && (
+                        <Link
+                          to="/admin"
+                          onClick={closeMobileMenu}
+                          className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-white/10 dark:hover:bg-gray-800/50 transition-all duration-300"
+                        >
+                          Admin Panel
+                        </Link>
+                      )}
+                      
+                      <button
+                        onClick={() => {
+                          handleLogout();
+                          closeMobileMenu();
+                        }}
+                        className="block w-full text-left px-3 py-3 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-white/10 dark:hover:bg-gray-800/50 transition-all duration-300"
+                      >
+                        Sign Out
+                      </button>
+                    </div>
                   </>
                 )}
                 
                 {!user && (
-                  <div className="pt-4 border-t border-white/10 dark:border-gray-700/30 space-y-2">
-                    <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                  <div className="border-t border-white/20 dark:border-gray-700/30 pt-4 mt-6 space-y-3">
+                    <Link to="/login" onClick={closeMobileMenu}>
                       <AnimatedButton variant="ghost" size="sm" className="w-full">
                         Sign In
                       </AnimatedButton>
                     </Link>
-                    <Link to="/signup" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link to="/signup" onClick={closeMobileMenu}>
                       <AnimatedButton variant="primary" size="sm" className="w-full">
                         Sign Up
                       </AnimatedButton>
