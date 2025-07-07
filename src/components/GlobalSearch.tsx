@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, User, Music, Calendar, MessageCircle, X } from 'lucide-react';
+import { Search, User, Music, Calendar, MessageCircle, X, Zap, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useNavigate } from 'react-router-dom';
@@ -165,7 +165,7 @@ export const GlobalSearch: React.FC = () => {
             }}
           />
           
-          {/* Search icon */}
+          {/* Enhanced Search icon with glow effect */}
           <motion.div
             className="absolute left-3 top-1/2 transform -translate-y-1/2 z-10"
             animate={{
@@ -174,7 +174,19 @@ export const GlobalSearch: React.FC = () => {
             }}
             transition={{ duration: 0.3 }}
           >
-            <Search className="w-5 h-5 text-purple-300" />
+            <div className="relative">
+              <Search className="w-5 h-5 text-purple-300" />
+              {/* Glow effect */}
+              <motion.div
+                className="absolute inset-0 w-5 h-5"
+                animate={{
+                  boxShadow: isExpanded 
+                    ? "0 0 20px rgba(147, 51, 234, 0.8), 0 0 40px rgba(147, 51, 234, 0.4)"
+                    : "0 0 10px rgba(147, 51, 234, 0.4)"
+                }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
           </motion.div>
 
           {/* Input field */}
@@ -187,7 +199,7 @@ export const GlobalSearch: React.FC = () => {
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
                 className="w-full h-full pl-12 pr-12 bg-transparent text-white placeholder-purple-300 focus:outline-none text-sm font-medium selectable"
-                placeholder="Search the galaxy..."
+                placeholder="Search warriors, music, events..."
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -217,12 +229,17 @@ export const GlobalSearch: React.FC = () => {
             )}
           </AnimatePresence>
 
-          {/* Pulsing border animation */}
+          {/* Enhanced pulsing border animation */}
           <motion.div
             className="absolute inset-0 border-2 border-purple-400/50 rounded-full"
             animate={{
               scale: [1, 1.05, 1],
-              opacity: [0.5, 0.8, 0.5]
+              opacity: [0.5, 0.8, 0.5],
+              borderColor: [
+                "rgba(147, 51, 234, 0.5)",
+                "rgba(59, 130, 246, 0.8)",
+                "rgba(147, 51, 234, 0.5)"
+              ]
             }}
             transition={{
               duration: 2,
@@ -230,6 +247,42 @@ export const GlobalSearch: React.FC = () => {
               ease: "easeInOut"
             }}
           />
+
+          {/* Sparkle effects */}
+          <AnimatePresence>
+            {isExpanded && (
+              <>
+                <motion.div
+                  className="absolute top-1 right-8 w-1 h-1 bg-yellow-400 rounded-full"
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ 
+                    opacity: [0, 1, 0],
+                    scale: [0, 1, 0],
+                    rotate: 360
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    delay: 0.5
+                  }}
+                />
+                <motion.div
+                  className="absolute bottom-2 left-8 w-1 h-1 bg-cyan-400 rounded-full"
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ 
+                    opacity: [0, 1, 0],
+                    scale: [0, 1, 0],
+                    rotate: -360
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    delay: 1
+                  }}
+                />
+              </>
+            )}
+          </AnimatePresence>
         </motion.div>
       </motion.div>
 
@@ -250,8 +303,24 @@ export const GlobalSearch: React.FC = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                 >
-                  <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <div className="relative mb-4">
+                    <Search className="w-8 h-8 mx-auto opacity-50" />
+                    <motion.div
+                      className="absolute inset-0 w-8 h-8 mx-auto"
+                      animate={{
+                        rotate: 360
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "linear"
+                      }}
+                    >
+                      <Sparkles className="w-8 h-8 opacity-30" />
+                    </motion.div>
+                  </div>
                   <p>No results found for "{query}"</p>
+                  <p className="text-xs mt-2 opacity-75">Try searching for warriors, music, or events</p>
                 </motion.div>
               ) : (
                 <div className="space-y-1">
@@ -268,11 +337,19 @@ export const GlobalSearch: React.FC = () => {
                         whileHover={{ scale: 1.02 }}
                       >
                         <motion.div
-                          className="p-2 rounded-full bg-gradient-to-r from-purple-500/30 to-blue-500/30"
+                          className="p-2 rounded-full bg-gradient-to-r from-purple-500/30 to-blue-500/30 relative"
                           whileHover={{ rotate: 360 }}
                           transition={{ duration: 0.5 }}
                         >
                           <Icon className="w-4 h-4 text-purple-300 flex-shrink-0" />
+                          {/* Icon glow effect */}
+                          <motion.div
+                            className="absolute inset-0 rounded-full"
+                            whileHover={{
+                              boxShadow: "0 0 20px rgba(147, 51, 234, 0.6)"
+                            }}
+                            transition={{ duration: 0.3 }}
+                          />
                         </motion.div>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium text-white truncate group-hover:text-purple-200 transition-colors">
@@ -284,8 +361,15 @@ export const GlobalSearch: React.FC = () => {
                             </div>
                           )}
                         </div>
-                        <div className="text-xs text-purple-400 capitalize opacity-75 group-hover:opacity-100 transition-opacity">
-                          {result.type}
+                        <div className="flex items-center space-x-2">
+                          <div className="text-xs text-purple-400 capitalize opacity-75 group-hover:opacity-100 transition-opacity">
+                            {result.type}
+                          </div>
+                          <motion.div
+                            className="w-1 h-1 bg-purple-400 rounded-full opacity-0 group-hover:opacity-100"
+                            whileHover={{ scale: 2 }}
+                            transition={{ duration: 0.2 }}
+                          />
                         </div>
                       </motion.button>
                     );
