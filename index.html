@@ -7,10 +7,36 @@
     <title>Royal Warriors Squad - Unleashing Passion, Power & Purpose</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Disable right-click context menu
+      document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+      });
+      
+      // Disable F12, Ctrl+Shift+I, Ctrl+U, Ctrl+S
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'F12' || 
+            (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+            (e.ctrlKey && e.key === 'u') ||
+            (e.ctrlKey && e.key === 's')) {
+          e.preventDefault();
+          return false;
+        }
+      });
+      
+      // Disable text selection on certain elements
+      document.addEventListener('selectstart', function(e) {
+        if (e.target.tagName === 'IMG' || e.target.classList.contains('no-select')) {
+          e.preventDefault();
+          return false;
+        }
+      });
+    </script>
   </body>
 </html>
