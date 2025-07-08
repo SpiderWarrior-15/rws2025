@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot, Send, X, Minimize2, Maximize2, Sparkles, MessageCircle, Crown, Mail, User } from 'lucide-react';
+import { Bot, Send, X, Minimize2, Maximize2, Sparkles, MessageCircle, Crown, Mail, User, AlertTriangle, Shield } from 'lucide-react';
 import { GlassCard } from './GlassCard';
 import { AnimatedButton } from './AnimatedButton';
 import { useAIBuddy } from '../hooks/useAIBuddy';
@@ -38,6 +38,14 @@ export const AIBuddy: React.FC = () => {
 
   const getAIResponse = (userMessage: string): string => {
     const message = userMessage.toLowerCase();
+    
+    // Filter out puzzle/quiz questions
+    const puzzleKeywords = ['puzzle', 'riddle', 'quiz', 'answer', 'solution', 'solve', 'brain teaser', 'question', 'what am i', 'guess'];
+    const containsPuzzleKeyword = puzzleKeywords.some(keyword => message.includes(keyword));
+    
+    if (containsPuzzleKeyword && (message.includes('what') || message.includes('how') || message.includes('solve'))) {
+      return "🚫 I'm designed to help with platform navigation and general questions, but I can't help with puzzles or quiz answers! That would spoil the fun and challenge. Try solving them yourself or ask fellow warriors for hints in the chat! 🧩";
+    }
     
     // Creator information
     if (message.includes('creator') || message.includes('faizy') || message.includes('spider warrior') || message.includes('who made') || message.includes('who created')) {
@@ -96,6 +104,21 @@ export const AIBuddy: React.FC = () => {
     // Help
     if (message.includes('help') || message.includes('how')) {
       return "🤝 I'm here to help! You can ask me about puzzles, events, chat features, music, scoring, our creator Faizy, or anything else about the platform. Just type your question and I'll do my best to guide you through this amazing warrior community!";
+    }
+    
+    // News and updates
+    if (message.includes('news') || message.includes('update') || message.includes('article')) {
+      return "📰 Check out our News section for the latest tech updates, AI advancements, and smartphone news! We have both manually curated articles and auto-generated tech news that updates regularly. You can filter by categories like Technology, AI, and Smartphones!";
+    }
+    
+    // AI and technology questions
+    if (message.includes('ai') || message.includes('artificial intelligence') || message.includes('technology')) {
+      return "🤖 I love talking about AI and technology! Our platform features the latest tech news, AI advancements, and discussions about emerging technologies. Check out our News section for cutting-edge articles, or join the Tech Warriors chat group to discuss with fellow tech enthusiasts!";
+    }
+    
+    // Admin and moderation
+    if (message.includes('admin') || message.includes('report') || message.includes('problem')) {
+      return "⚔️ If you need admin assistance or want to report an issue, you can contact our commanders through the Contact page or reach out to our creator Faizy directly at spiderwarrior15@gmail.com. For technical issues, our admin panel has debugging tools and error logs to help resolve problems quickly!";
     }
     
     // Fun responses
