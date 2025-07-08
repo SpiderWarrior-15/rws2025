@@ -64,7 +64,8 @@ export const Login: React.FC = () => {
           {/* 🌐 Google Sign-In Button */}
           <div className="mb-6">
             <button
-              onClick={() => window.location.href = 'http://localhost:5000/auth/google'}
+              onClick={() => window.location.href = 'https://rws2025.netlify.app/auth/google'}
+              
               className="w-full flex items-center justify-center px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg shadow hover:bg-gray-100 transition"
             >
               <img
