@@ -27,6 +27,161 @@ export const initialSongs: Song[] = [
     embedUrl: 'https://www.youtube.com/embed/dhYOPzcsbGM',
   }
 ];
+import { Song } from '../types';
+
+export const initialSongs: Song[] = [
+  {
+    id: '1',
+    title: 'Faded',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=60ItHLz5WEA',
+  },
+  {
+    id: '2',
+    title: 'Alone',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=1-xGerv5FOk',
+  },
+  {
+    id: '3',
+    title: 'On My Way',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=dhYOPzcsbGM',
+  },
+  {
+    id: '4',
+    title: 'Spectre',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=AOeY-nDp7hI',
+  },
+  {
+    id: '5',
+    title: 'Darkside',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=M-P4QBt-FWw',
+  },
+  {
+    id: '6',
+    title: 'Sing Me to Sleep',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=2i2khp_npdE',
+  },
+  {
+    id: '7',
+    title: 'Tired',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=g4hGRvs6HHU',
+  },
+  {
+    id: '8',
+    title: 'Ignite',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=Az-mGR-CehY',
+  },
+  {
+    id: '9',
+    title: 'Lily',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=1rWEU5Z2xJw',
+  },
+  {
+    id: '10',
+    title: 'Diamond Heart',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=GoqzCncXjMI',
+  },
+  {
+    id: '11',
+    title: 'All Falls Down',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=6RLLOEzdxsM',
+  },
+  {
+    id: '12',
+    title: 'Do It All for You',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=ZtBzWyyvHfM',
+  },
+  {
+    id: '13',
+    title: 'Heading Home',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=dw8wg1tU8xk',
+  },
+  {
+    id: '14',
+    title: 'Sweet Dreams',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=h-3w7pL5Vvg',
+  },
+  {
+    id: '15',
+    title: 'Hello World',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=2i2khp_npdE',
+  },
+  {
+    id: '16',
+    title: 'Believers',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=KhhLtPCEjqw',
+  },
+  {
+    id: '17',
+    title: 'Man on the Moon',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=x2LtzxO4pOs',
+  },
+  {
+    id: '18',
+    title: 'Paradise',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=V1Pl8CzNzCw',
+  },
+  {
+    id: '19',
+    title: 'Sorry',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=Vqfy4ScRXFQ',
+  },
+  {
+    id: '20',
+    title: 'Not You',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=JXzKN8Z1NDY',
+  },
+  {
+    id: '21',
+    title: 'Fake a Smile',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=6tkaatkbC2Y',
+  },
+  {
+    id: '22',
+    title: 'Space Melody',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=8n7tEe7-XvA',
+  },
+  {
+    id: '23',
+    title: 'Time',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=egzwJ8uw2f4',
+  },
+  {
+    id: '24',
+    title: 'Interstellar',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=d_C-jfvoSTY',
+  },
+  {
+    id: '25',
+    title: 'Unity',
+    artist: 'Alan Walker',
+    embedUrl: 'https://www.youtube.com/watch?v=n8X9_MgEdCg',
+  }
+];
+
 
 export const getCurrentWeek = () => {
   const now = new Date();
