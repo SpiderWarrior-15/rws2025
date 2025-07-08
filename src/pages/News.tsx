@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Edit, Trash2, Newspaper, Clock, User, Eye } from 'lucide-react';
+import { Plus, Edit, Trash2, Newspaper, Clock, User, Eye, Zap, RefreshCw, Sparkles, Tag, ExternalLink } from 'lucide-react';
 import { GlassCard } from '../components/GlassCard';
 import { AnimatedButton } from '../components/AnimatedButton';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useAuth } from '../hooks/useAuth';
 import { useRealtime } from '../contexts/RealtimeContext';
+import { newsService } from '../services/newsService';
 import { format } from 'date-fns';
 
 interface NewsArticle {
@@ -28,11 +29,16 @@ export const News: React.FC = () => {
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [editingArticle, setEditingArticle] = useState<NewsArticle | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [isGeneratingNews, setIsGeneratingNews] = useState(false);
+  const [lastAutoUpdate, setLastAutoUpdate] = useLocalStorage<string>('rws-last-auto-update', '');
   const [newArticle, setNewArticle] = useState({
     title: '',
     content: '',
     excerpt: '',
-    category: 'general' as const
+    category: 'general' as const,
+    tags: [] as string[],
+    source: '',
+    imageUrl: ''
   });
 
   const isAdmin = user?.accountType === 'admin';
@@ -96,6 +102,40 @@ export const News: React.FC = () => {
     const updatedArticles = articles.filter(article => article.id !== id);
     setArticles(updatedArticles);
     broadcastUpdate('news_deleted', { id });
+  };
+  
+  const handleGenerateNews = async () => {
+    setIsGeneratingNews(true);
+    try {
+      const newArticles = await newsService.fetchLatestNews();
+      
+      // Filter out articles that already exist
+      const existingTitles = new Set(articles.map(a => a.title.toLowerCase()));
+      const uniqueArticles = newArticles.filter(article => 
+        !existingTitles.has(article.title.toLowerCase())
+      );
+      
+      if (uniqueArticles.length > 0) {
+        const updatedArticles = [...uniqueArticles, ...articles];
+        setArticles(updatedArticles);
+        setLastAutoUpdate(new Date().toISOString());
+        broadcastUpdate('auto_news_generated', { count: uniqueArticles.length });
+        
+        // Show success message
+        alert(`Generated ${uniqueArticles.length} new tech articles!`);
+      } else {
+        alert('No new articles available at this time.');
+      }
+    } catch (error) {
+      console.error('Failed to generate news:', error);
+      alert('Failed to generate news. Please try again later.');
+    } finally {
+      setIsGeneratingNews(false);
+    }
+  };
+  
+  const handleLiveUpdate = async () => {
+    await handleGenerateNews();
   };
 
   const handleViewArticle = (article: NewsArticle) => {
@@ -161,7 +201,7 @@ export const News: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex justify-center mb-8"
+            className="flex flex-wrap justify-center gap-4 mb-8"
           >
             <AnimatedButton
               variant="primary"
@@ -169,6 +209,24 @@ export const News: React.FC = () => {
               onClick={() => setIsAddingNew(true)}
             >
               Add News Article
+            </AnimatedButton>
+            <AnimatedButton
+              variant="secondary"
+              icon={Zap}
+              onClick={handleGenerateNews}
+              disabled={isGeneratingNews}
+              className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-blue-500/30"
+            >
+              {isGeneratingNews ? 'Generating...' : 'AI Generate Articles'}
+            </AnimatedButton>
+            <AnimatedButton
+              variant="secondary"
+              icon={RefreshCw}
+              onClick={handleLiveUpdate}
+              disabled={isGeneratingNews}
+              className="bg-gradient-to-r from-green-600/20 to-blue-600/20 border-green-500/30"
+            >
+              Live Update
             </AnimatedButton>
           </motion.div>
         )}
@@ -226,6 +284,32 @@ export const News: React.FC = () => {
                     placeholder="Brief description of the article..."
                   />
                 </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Source
+                    </label>
+                    <input
+                      type="text"
+                      value={newArticle.source}
+                      onChange={(e) => setNewArticle({ ...newArticle, source: e.target.value })}
+                      className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-white"
+                      placeholder="News source (optional)"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Image URL
+                    </label>
+                    <input
+                      type="url"
+                      value={newArticle.imageUrl}
+                      onChange={(e) => setNewArticle({ ...newArticle, imageUrl: e.target.value })}
+                      className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-white"
+                      placeholder="https://example.com/image.jpg"
+                    />
+                  </div>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Content
@@ -250,7 +334,7 @@ export const News: React.FC = () => {
                     onClick={() => {
                       setIsAddingNew(false);
                       setEditingArticle(null);
-                      setNewArticle({ title: '', content: '', excerpt: '', category: 'general' });
+                      setNewArticle({ title: '', content: '', excerpt: '', category: 'general', tags: [], source: '', imageUrl: '' });
                     }}
                   >
                     Cancel
@@ -258,6 +342,22 @@ export const News: React.FC = () => {
                 </div>
               </div>
             </GlassCard>
+          </motion.div>
+        )}
+
+        {/* Auto-Update Status */}
+        {lastAutoUpdate && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex justify-center mb-6"
+          >
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-green-600/20 to-blue-600/20 backdrop-blur-md border border-green-500/30">
+              <Sparkles className="w-4 h-4 text-green-400 mr-2" />
+              <span className="text-sm font-medium text-green-400">
+                Last auto-update: {format(new Date(lastAutoUpdate), 'MMM dd, yyyy HH:mm')}
+              </span>
+            </div>
           </motion.div>
         )}
 
@@ -272,15 +372,37 @@ export const News: React.FC = () => {
               className="group"
             >
               <GlassCard className="p-6 h-full flex flex-col">
+                {/* Article Image */}
+                {article.imageUrl && (
+                  <div className="mb-4 -mx-6 -mt-6">
+                    <img
+                      src={article.imageUrl}
+                      alt={article.title}
+                      className="w-full h-48 object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+                
                 <div className="flex items-center justify-between mb-4">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    article.category === 'tech' ? 'bg-blue-500/20 text-blue-400' :
-                    article.category === 'ai' ? 'bg-purple-500/20 text-purple-400' :
-                    article.category === 'smartphone' ? 'bg-green-500/20 text-green-400' :
-                    'bg-gray-500/20 text-gray-400'
-                  }`}>
-                    {article.category.toUpperCase()}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      article.category === 'tech' ? 'bg-blue-500/20 text-blue-400' :
+                      article.category === 'ai' ? 'bg-purple-500/20 text-purple-400' :
+                      article.category === 'smartphone' ? 'bg-green-500/20 text-green-400' :
+                      'bg-gray-500/20 text-gray-400'
+                    }`}>
+                      {article.category.toUpperCase()}
+                    </span>
+                    {article.isAutoGenerated && (
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                        <Zap className="w-3 h-3 inline mr-1" />
+                        AI
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center space-x-1 text-gray-500 text-xs">
                     <Eye className="w-3 h-3" />
                     <span>{article.views}</span>
@@ -294,11 +416,35 @@ export const News: React.FC = () => {
                 <p className="text-gray-600 dark:text-gray-400 mb-4 flex-1 line-clamp-3">
                   {article.excerpt}
                 </p>
+                
+                {/* Tags */}
+                {article.tags && article.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-4">
+                    {article.tags.slice(0, 3).map((tag, tagIndex) => (
+                      <span
+                        key={tagIndex}
+                        className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-white/10 text-gray-400 border border-white/20"
+                      >
+                        <Tag className="w-3 h-3 mr-1" />
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 mb-4">
                   <div className="flex items-center space-x-2">
                     <User className="w-4 h-4" />
                     <span>{article.author}</span>
+                    {article.source && (
+                      <>
+                        <span>•</span>
+                        <span className="flex items-center space-x-1">
+                          <ExternalLink className="w-3 h-3" />
+                          <span>{article.source}</span>
+                        </span>
+                      </>
+                    )}
                   </div>
                   <div className="flex items-center space-x-2">
                     <Clock className="w-4 h-4" />

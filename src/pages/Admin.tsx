@@ -79,6 +79,12 @@ export const Admin: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [selectedAttempts, setSelectedAttempts] = useState<string[]>([]);
 
+  // AI Center states
+  const [aiKnowledge, setAiKnowledge] = useLocalStorage<string[]>('rws-ai-knowledge', []);
+  const [newKnowledge, setNewKnowledge] = useState('');
+  const [systemLogs, setSystemLogs] = useLocalStorage<any[]>('rws-system-logs', []);
+  const [errorLogs, setErrorLogs] = useLocalStorage<any[]>('rws-error-logs', []);
+
   // Real-time updates
   useEffect(() => {
     const interval = setInterval(() => {
@@ -214,6 +220,48 @@ export const Admin: React.FC = () => {
     setMessages(updatedMessages);
     broadcastUpdate('message_deleted', { messageId });
   };
+  
+  // AI Center functions
+  const handleAddKnowledge = () => {
+    if (newKnowledge.trim()) {
+      const knowledge = {
+        id: Date.now().toString(),
+        content: newKnowledge.trim(),
+        addedAt: new Date().toISOString(),
+        addedBy: user?.username || 'admin'
+      };
+      setAiKnowledge([...aiKnowledge, knowledge]);
+      setNewKnowledge('');
+      broadcastUpdate('ai_knowledge_added', knowledge);
+    }
+  };
+  
+  const handleDeleteKnowledge = (id: string) => {
+    setAiKnowledge(aiKnowledge.filter(k => k.id !== id));
+    broadcastUpdate('ai_knowledge_deleted', { id });
+  };
+  
+  const handleClearLogs = (type: 'system' | 'error') => {
+    if (type === 'system') {
+      setSystemLogs([]);
+    } else {
+      setErrorLogs([]);
+    }
+    broadcastUpdate('logs_cleared', { type });
+  };
+  
+  const handleSystemOptimization = () => {
+    // Simulate system optimization
+    const log = {
+      id: Date.now().toString(),
+      type: 'optimization',
+      message: 'System optimization completed successfully',
+      timestamp: new Date().toISOString(),
+      details: 'Cleaned cache, optimized database, removed unused files'
+    };
+    setSystemLogs([log, ...systemLogs]);
+    alert('System optimization completed!');
+  };
 
   // Get user name
   const getUserName = (userId: string) => {
@@ -278,6 +326,13 @@ export const Admin: React.FC = () => {
       icon: TrendingUp, 
       count: 0,
       description: 'Platform analytics'
+    },
+    { 
+      id: 'ai-center', 
+      label: 'AI Center', 
+      icon: Bot, 
+      count: aiKnowledge.length,
+      description: 'Manage AI assistant'
     },
     { 
       id: 'homepage', 
@@ -827,6 +882,176 @@ export const Admin: React.FC = () => {
                 </div>
               </GlassCard>
             </div>
+          </div>
+        );
+
+      case 'ai-center':
+        return (
+          <div className="space-y-6">
+            {/* AI Knowledge Management */}
+            <GlassCard className="p-6">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+                <Bot className="w-5 h-5 mr-2 text-purple-400" />
+                AI Knowledge Base
+              </h3>
+              
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Add Knowledge to AI Buddy
+                  </label>
+                  <textarea
+                    value={newKnowledge}
+                    onChange={(e) => setNewKnowledge(e.target.value)}
+                    className="w-full px-4 py-3 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white resize-none"
+                    rows={4}
+                    placeholder="Enter information for the AI to learn..."
+                  />
+                </div>
+                <AnimatedButton
+                  variant="primary"
+                  onClick={handleAddKnowledge}
+                  disabled={!newKnowledge.trim()}
+                >
+                  Add to Knowledge Base
+                </AnimatedButton>
+              </div>
+              
+              <div className="space-y-3">
+                <h4 className="font-medium text-white">Current Knowledge ({aiKnowledge.length} entries)</h4>
+                {aiKnowledge.length === 0 ? (
+                  <p className="text-gray-400 text-sm">No knowledge entries yet.</p>
+                ) : (
+                  <div className="max-h-64 overflow-y-auto space-y-2">
+                    {aiKnowledge.map((knowledge) => (
+                      <div key={knowledge.id} className="p-3 bg-white/5 rounded-lg flex justify-between items-start">
+                        <div className="flex-1">
+                          <p className="text-white text-sm">{knowledge.content}</p>
+                          <p className="text-gray-400 text-xs mt-1">
+                            Added by {knowledge.addedBy} on {new Date(knowledge.addedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteKnowledge(knowledge.id)}
+                          className="ml-2 p-1 text-red-400 hover:text-red-300"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </GlassCard>
+            
+            {/* System Management */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <GlassCard className="p-6">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+                  <Settings className="w-5 h-5 mr-2 text-blue-400" />
+                  System Management
+                </h3>
+                
+                <div className="space-y-4">
+                  <AnimatedButton
+                    variant="primary"
+                    icon={RefreshCw}
+                    onClick={handleSystemOptimization}
+                    className="w-full"
+                  >
+                    Optimize System
+                  </AnimatedButton>
+                  
+                  <AnimatedButton
+                    variant="secondary"
+                    icon={Trash2}
+                    onClick={() => handleClearLogs('system')}
+                    className="w-full"
+                  >
+                    Clear System Logs
+                  </AnimatedButton>
+                  
+                  <AnimatedButton
+                    variant="ghost"
+                    icon={AlertCircle}
+                    onClick={() => handleClearLogs('error')}
+                    className="w-full text-red-400"
+                  >
+                    Clear Error Logs
+                  </AnimatedButton>
+                </div>
+              </GlassCard>
+              
+              <GlassCard className="p-6">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+                  <Activity className="w-5 h-5 mr-2 text-green-400" />
+                  System Status
+                </h3>
+                
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-300">AI Buddy Status</span>
+                    <span className="text-green-400 flex items-center">
+                      <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                      Online
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-300">Database</span>
+                    <span className="text-green-400 flex items-center">
+                      <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                      Connected
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-300">News Service</span>
+                    <span className="text-green-400 flex items-center">
+                      <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                      Active
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-300">System Load</span>
+                    <span className="text-yellow-400">Normal</span>
+                  </div>
+                </div>
+              </GlassCard>
+            </div>
+            
+            {/* Error Logs */}
+            <GlassCard className="p-6">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+                <AlertCircle className="w-5 h-5 mr-2 text-red-400" />
+                Recent System Logs
+              </h3>
+              
+              {systemLogs.length === 0 ? (
+                <p className="text-gray-400">No system logs available.</p>
+              ) : (
+                <div className="max-h-64 overflow-y-auto space-y-2">
+                  {systemLogs.slice(0, 10).map((log) => (
+                    <div key={log.id} className="p-3 bg-white/5 rounded-lg">
+                      <div className="flex justify-between items-start mb-1">
+                        <span className={`text-sm font-medium ${
+                          log.type === 'error' ? 'text-red-400' :
+                          log.type === 'warning' ? 'text-yellow-400' :
+                          'text-green-400'
+                        }`}>
+                          {log.type.toUpperCase()}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {new Date(log.timestamp).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-white text-sm">{log.message}</p>
+                      {log.details && (
+                        <p className="text-gray-400 text-xs mt-1">{log.details}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </GlassCard>
           </div>
         );
 

@@ -16,7 +16,9 @@ export const AIBuddyIntro: React.FC<AIBuddyIntroProps> = ({ onClose, onStartChat
     "🎉 I can tell you about upcoming events and activities!",
     "💬 Need help with chat features? I'm your buddy!",
     "🎵 Curious about Warriors' Picks music? Just ask!",
-    "🏆 Want to know about scoring and leaderboards? I've got you covered!"
+    "🏆 Want to know about scoring and leaderboards? I've got you covered!",
+    "📰 Check out our latest tech news and AI updates!",
+    "🚫 I can't help with puzzle answers - that would spoil the fun!"
   ];
 
   useEffect(() => {
