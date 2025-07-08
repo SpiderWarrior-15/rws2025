@@ -28,6 +28,8 @@ export const AIBuddy: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const [aiKnowledge] = useLocalStorage<any[]>('rws-ai-knowledge', []);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -38,6 +40,14 @@ export const AIBuddy: React.FC = () => {
 
   const getAIResponse = (userMessage: string): string => {
     const message = userMessage.toLowerCase();
+    
+    // Check custom knowledge base first
+    const relevantKnowledge = aiKnowledge.find(k => 
+      message.includes(k.content.toLowerCase().substring(0, 20))
+    );
+    if (relevantKnowledge) {
+      return `📚 ${relevantKnowledge.content}`;
+    }
     
     // Filter out puzzle/quiz questions
     const puzzleKeywords = ['puzzle', 'riddle', 'quiz', 'answer', 'solution', 'solve', 'brain teaser', 'question', 'what am i', 'guess'];

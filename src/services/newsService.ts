@@ -1,4 +1,5 @@
 import { NewsArticle } from '../types';
+import toast from 'react-hot-toast';
 
 // Mock news data - in production, this would fetch from real APIs
 const mockTechNews = [
@@ -55,6 +56,42 @@ const mockTechNews = [
     tags: ["Meta", "Llama 3", "Translation", "Multilingual AI"],
     source: "Meta AI Blog",
     imageUrl: "https://images.pexels.com/photos/267350/pexels-photo-267350.jpeg"
+  },
+  {
+    title: "Apple Vision Pro 2: Revolutionary Mixed Reality with Neural Interface",
+    content: "Apple's second-generation Vision Pro introduces groundbreaking neural interface technology that can read basic brain signals for hands-free control. The device features 8K per eye displays, advanced spatial computing, and seamless integration with the Apple ecosystem...",
+    excerpt: "Apple's next-generation mixed reality headset promises to revolutionize human-computer interaction with neural interface technology.",
+    category: "tech" as const,
+    tags: ["Apple", "Vision Pro", "Mixed Reality", "Neural Interface"],
+    source: "Apple Insider",
+    imageUrl: "https://images.pexels.com/photos/123335/pexels-photo-123335.jpeg"
+  },
+  {
+    title: "Quantum Computing Breakthrough: IBM's 1000-Qubit Processor",
+    content: "IBM has achieved a major milestone in quantum computing with their new 1000-qubit processor, capable of solving complex problems that would take classical computers millions of years. This breakthrough could revolutionize cryptography, drug discovery, and financial modeling...",
+    excerpt: "IBM's quantum computing advancement brings us closer to practical quantum applications in various industries.",
+    category: "tech" as const,
+    tags: ["IBM", "Quantum Computing", "Processor", "Technology"],
+    source: "IBM Research",
+    imageUrl: "https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg"
+  },
+  {
+    title: "Samsung Galaxy AI: Personal Assistant That Learns Your Habits",
+    content: "Samsung's new Galaxy AI goes beyond traditional voice assistants by learning user habits, predicting needs, and proactively suggesting actions. The AI can manage your schedule, optimize device performance, and even predict when you'll need certain apps or information...",
+    excerpt: "Samsung's advanced AI technology creates a truly personalized smartphone experience that adapts to individual user patterns.",
+    category: "smartphone" as const,
+    tags: ["Samsung", "Galaxy AI", "Personal Assistant", "Machine Learning"],
+    source: "Samsung Newsroom",
+    imageUrl: "https://images.pexels.com/photos/1092644/pexels-photo-1092644.jpeg"
+  },
+  {
+    title: "OpenAI Announces GPT-5: Multimodal AI with Video Generation",
+    content: "OpenAI's GPT-5 introduces unprecedented multimodal capabilities including real-time video generation, advanced reasoning, and the ability to understand and create content across text, images, audio, and video formats simultaneously...",
+    excerpt: "GPT-5 represents a significant leap forward in AI capabilities with true multimodal understanding and generation.",
+    category: "ai" as const,
+    tags: ["OpenAI", "GPT-5", "Multimodal AI", "Video Generation"],
+    source: "OpenAI Blog",
+    imageUrl: "https://images.pexels.com/photos/8386440/pexels-photo-8386440.jpeg"
   }
 ];
 
@@ -81,6 +118,8 @@ export class NewsService {
 
     try {
       // Simulate API delay
+      toast.loading('Generating fresh tech news...', { id: 'news-generation' });
+      
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       // In production, this would fetch from real APIs like:
@@ -89,7 +128,11 @@ export class NewsService {
       // - Reddit API
       // - RSS feeds
       
-      const articles: NewsArticle[] = mockTechNews.map((article, index) => ({
+      // Shuffle articles and take random selection
+      const shuffledNews = [...mockTechNews].sort(() => Math.random() - 0.5);
+      const selectedNews = shuffledNews.slice(0, Math.floor(Math.random() * 4) + 3); // 3-6 articles
+      
+      const articles: NewsArticle[] = selectedNews.map((article, index) => ({
         id: `auto_${Date.now()}_${index}`,
         title: article.title,
         content: article.content,
@@ -108,12 +151,16 @@ export class NewsService {
       this.newsCache = articles;
       this.lastFetch = new Date();
       
+      toast.success(`Generated ${articles.length} fresh tech articles!`, { id: 'news-generation' });
+      
       return articles;
     } catch (error) {
       console.error('Failed to fetch news:', error);
       return [];
     }
   }
+  
+  toast.dismiss('news-generation');
 
   public async generateNewsUpdate(): Promise<NewsArticle[]> {
     // This would integrate with real news APIs in production

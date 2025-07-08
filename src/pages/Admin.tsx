@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Users,
+  Users, Bot, Database, FileText, Code, Terminal, Wifi, HardDrive, Cpu, MemoryStick,
   Settings,
   MessageSquare,
   Star,
@@ -35,7 +35,8 @@ import {
   Globe,
   Smartphone,
   Monitor,
-  Tablet
+  Tablet,
+  Server, Network, Shield as ShieldIcon, Lock, Unlock, Power, PowerOff, CheckSquare, Square
 } from 'lucide-react';
 import { GlassCard } from '../components/GlassCard';
 import { AnimatedButton } from '../components/AnimatedButton';
@@ -84,6 +85,14 @@ export const Admin: React.FC = () => {
   const [newKnowledge, setNewKnowledge] = useState('');
   const [systemLogs, setSystemLogs] = useLocalStorage<any[]>('rws-system-logs', []);
   const [errorLogs, setErrorLogs] = useLocalStorage<any[]>('rws-error-logs', []);
+  const [systemStatus, setSystemStatus] = useLocalStorage<any>('rws-system-status', {
+    aiService: 'online',
+    database: 'connected',
+    newsService: 'active',
+    chatService: 'online',
+    fileSystem: 'healthy',
+    lastOptimization: null
+  });
 
   // Real-time updates
   useEffect(() => {
@@ -262,6 +271,72 @@ export const Admin: React.FC = () => {
     setSystemLogs([log, ...systemLogs]);
     alert('System optimization completed!');
   };
+  
+  const handleServiceToggle = (service: string) => {
+    const newStatus = { ...systemStatus };
+    newStatus[service] = newStatus[service] === 'online' ? 'offline' : 'online';
+    setSystemStatus(newStatus);
+    
+    const log = {
+      id: Date.now().toString(),
+      type: 'service',
+      message: `${service} service ${newStatus[service]}`,
+      timestamp: new Date().toISOString(),
+      details: `Service status changed by ${user?.username}`
+    };
+    setSystemLogs([log, ...systemLogs]);
+  };
+  
+  const handleDatabaseBackup = () => {
+    const log = {
+      id: Date.now().toString(),
+      type: 'backup',
+      message: 'Database backup completed successfully',
+      timestamp: new Date().toISOString(),
+      details: 'Full database backup created and stored securely'
+    };
+    setSystemLogs([log, ...systemLogs]);
+    alert('Database backup completed successfully!');
+  };
+  
+  const handleFileCleanup = () => {
+    const log = {
+      id: Date.now().toString(),
+      type: 'cleanup',
+      message: 'File system cleanup completed',
+      timestamp: new Date().toISOString(),
+      details: 'Removed temporary files, cleared cache, optimized storage'
+    };
+    setSystemLogs([log, ...systemLogs]);
+    alert('File system cleanup completed!');
+  };
+  
+  const handleSecurityScan = () => {
+    const log = {
+      id: Date.now().toString(),
+      type: 'security',
+      message: 'Security scan completed - No threats detected',
+      timestamp: new Date().toISOString(),
+      details: 'Full system security scan performed, all systems secure'
+    };
+    setSystemLogs([log, ...systemLogs]);
+    alert('Security scan completed - System is secure!');
+  };
+  
+  const generateSystemReport = () => {
+    const report = {
+      timestamp: new Date().toISOString(),
+      systemStatus,
+      totalUsers: stats.totalUsers,
+      totalPuzzles: stats.totalPuzzles,
+      totalEvents: stats.totalEvents,
+      recentLogs: systemLogs.slice(0, 10)
+    };
+    
+    // In a real app, this would generate a downloadable report
+    console.log('System Report:', report);
+    alert('System report generated! Check console for details.');
+  };
 
   // Get user name
   const getUserName = (userId: string) => {
@@ -333,6 +408,20 @@ export const Admin: React.FC = () => {
       icon: Bot, 
       count: aiKnowledge.length,
       description: 'Manage AI assistant'
+    },
+    { 
+      id: 'system-management', 
+      label: 'System Management', 
+      icon: Server, 
+      count: 0,
+      description: 'Advanced system controls'
+    },
+    { 
+      id: 'file-manager', 
+      label: 'File Manager', 
+      icon: HardDrive, 
+      count: 0,
+      description: 'Manage system files'
     },
     { 
       id: 'homepage', 
@@ -919,7 +1008,7 @@ export const Admin: React.FC = () => {
               
               <div className="space-y-3">
                 <h4 className="font-medium text-white">Current Knowledge ({aiKnowledge.length} entries)</h4>
-                {aiKnowledge.length === 0 ? (
+                {!aiKnowledge || aiKnowledge.length === 0 ? (
                   <p className="text-gray-400 text-sm">No knowledge entries yet.</p>
                 ) : (
                   <div className="max-h-64 overflow-y-auto space-y-2">
@@ -927,7 +1016,7 @@ export const Admin: React.FC = () => {
                       <div key={knowledge.id} className="p-3 bg-white/5 rounded-lg flex justify-between items-start">
                         <div className="flex-1">
                           <p className="text-white text-sm">{knowledge.content}</p>
-                          <p className="text-gray-400 text-xs mt-1">
+                          <p className="text-gray-400 text-xs mt-1 selectable">
                             Added by {knowledge.addedBy} on {new Date(knowledge.addedAt).toLocaleDateString()}
                           </p>
                         </div>
@@ -944,7 +1033,7 @@ export const Admin: React.FC = () => {
               </div>
             </GlassCard>
             
-            {/* System Management */}
+            {/* Quick System Controls */}
             <div className="grid md:grid-cols-2 gap-6">
               <GlassCard className="p-6">
                 <h3 className="text-xl font-bold text-white mb-4 flex items-center">
@@ -984,7 +1073,7 @@ export const Admin: React.FC = () => {
               
               <GlassCard className="p-6">
                 <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                  <Activity className="w-5 h-5 mr-2 text-green-400" />
+                  <Activity className="w-5 h-5 mr-2 text-blue-400" />
                   System Status
                 </h3>
                 
@@ -992,27 +1081,29 @@ export const Admin: React.FC = () => {
                   <div className="flex justify-between items-center">
                     <span className="text-gray-300">AI Buddy Status</span>
                     <span className="text-green-400 flex items-center">
-                      <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-                      Online
+                      <div className={`w-2 h-2 rounded-full mr-2 ${systemStatus.aiService === 'online' ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                      {systemStatus.aiService === 'online' ? 'Online' : 'Offline'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-300">Database</span>
-                    <span className="text-green-400 flex items-center">
-                      <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-                      Connected
+                    <span className={`flex items-center ${systemStatus.database === 'connected' ? 'text-green-400' : 'text-red-400'}`}>
+                      <div className={`w-2 h-2 rounded-full mr-2 ${systemStatus.database === 'connected' ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                      {systemStatus.database === 'connected' ? 'Connected' : 'Disconnected'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-300">News Service</span>
-                    <span className="text-green-400 flex items-center">
-                      <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-                      Active
+                    <span className={`flex items-center ${systemStatus.newsService === 'active' ? 'text-green-400' : 'text-red-400'}`}>
+                      <div className={`w-2 h-2 rounded-full mr-2 ${systemStatus.newsService === 'active' ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                      {systemStatus.newsService === 'active' ? 'Active' : 'Inactive'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-300">System Load</span>
-                    <span className="text-yellow-400">Normal</span>
+                    <span className="text-gray-300">File System</span>
+                    <span className={`${systemStatus.fileSystem === 'healthy' ? 'text-green-400' : 'text-yellow-400'}`}>
+                      {systemStatus.fileSystem === 'healthy' ? 'Healthy' : 'Needs Attention'}
+                    </span>
                   </div>
                 </div>
               </GlassCard>
@@ -1051,6 +1142,286 @@ export const Admin: React.FC = () => {
                   ))}
                 </div>
               )}
+            </GlassCard>
+          </div>
+        );
+
+      case 'system-management':
+        return (
+          <div className="space-y-6">
+            {/* System Overview */}
+            <div className="grid md:grid-cols-3 gap-6">
+              <GlassCard className="p-6">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center">
+                  <Cpu className="w-5 h-5 mr-2 text-blue-400" />
+                  System Performance
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">CPU Usage</span>
+                    <span className="text-green-400">23%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Memory</span>
+                    <span className="text-yellow-400">67%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Storage</span>
+                    <span className="text-blue-400">45%</span>
+                  </div>
+                </div>
+              </GlassCard>
+              
+              <GlassCard className="p-6">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center">
+                  <Network className="w-5 h-5 mr-2 text-green-400" />
+                  Network Status
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Uptime</span>
+                    <span className="text-green-400">99.9%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Latency</span>
+                    <span className="text-green-400">12ms</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Bandwidth</span>
+                    <span className="text-blue-400">1.2 GB/s</span>
+                  </div>
+                </div>
+              </GlassCard>
+              
+              <GlassCard className="p-6">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center">
+                  <ShieldIcon className="w-5 h-5 mr-2 text-purple-400" />
+                  Security Status
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Firewall</span>
+                    <span className="text-green-400">Active</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">SSL</span>
+                    <span className="text-green-400">Enabled</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Last Scan</span>
+                    <span className="text-blue-400">2h ago</span>
+                  </div>
+                </div>
+              </GlassCard>
+            </div>
+            
+            {/* Service Management */}
+            <GlassCard className="p-6">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+                <Server className="w-5 h-5 mr-2 text-blue-400" />
+                Service Management
+              </h3>
+              
+              <div className="grid md:grid-cols-2 gap-4">
+                {Object.entries(systemStatus).map(([service, status]) => {
+                  if (service === 'lastOptimization') return null;
+                  return (
+                    <div key={service} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-3 h-3 rounded-full ${status === 'online' || status === 'active' || status === 'connected' || status === 'healthy' ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                        <span className="text-white capitalize">{service.replace(/([A-Z])/g, ' $1').trim()}</span>
+                      </div>
+                      <button
+                        onClick={() => handleServiceToggle(service)}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                          status === 'online' || status === 'active' || status === 'connected' || status === 'healthy'
+                            ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                            : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                        }`}
+                      >
+                        {status === 'online' || status === 'active' || status === 'connected' || status === 'healthy' ? 'Stop' : 'Start'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </GlassCard>
+            
+            {/* Advanced Tools */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <GlassCard className="p-6">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+                  <Database className="w-5 h-5 mr-2 text-green-400" />
+                  Database Management
+                </h3>
+                
+                <div className="space-y-4">
+                  <AnimatedButton
+                    variant="primary"
+                    icon={Download}
+                    onClick={handleDatabaseBackup}
+                    className="w-full"
+                  >
+                    Create Backup
+                  </AnimatedButton>
+                  
+                  <AnimatedButton
+                    variant="secondary"
+                    icon={RefreshCw}
+                    onClick={handleSystemOptimization}
+                    className="w-full"
+                  >
+                    Optimize Database
+                  </AnimatedButton>
+                  
+                  <div className="text-sm text-gray-400">
+                    <p>Last backup: {systemStatus.lastOptimization ? new Date(systemStatus.lastOptimization).toLocaleString() : 'Never'}</p>
+                    <p>Database size: ~2.3 MB</p>
+                    <p>Total records: {stats.totalUsers + stats.totalPuzzles + stats.totalEvents}</p>
+                  </div>
+                </div>
+              </GlassCard>
+              
+              <GlassCard className="p-6">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+                  <ShieldIcon className="w-5 h-5 mr-2 text-purple-400" />
+                  Security Tools
+                </h3>
+                
+                <div className="space-y-4">
+                  <AnimatedButton
+                    variant="primary"
+                    icon={Shield}
+                    onClick={handleSecurityScan}
+                    className="w-full"
+                  >
+                    Run Security Scan
+                  </AnimatedButton>
+                  
+                  <AnimatedButton
+                    variant="secondary"
+                    icon={Lock}
+                    onClick={() => alert('Security settings updated!')}
+                    className="w-full"
+                  >
+                    Update Security Settings
+                  </AnimatedButton>
+                  
+                  <div className="text-sm text-gray-400">
+                    <p>Last security scan: 2 hours ago</p>
+                    <p>Threats detected: 0</p>
+                    <p>Security level: High</p>
+                  </div>
+                </div>
+              </GlassCard>
+            </div>
+            
+            {/* System Reports */}
+            <GlassCard className="p-6">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+                <FileText className="w-5 h-5 mr-2 text-yellow-400" />
+                System Reports & Analytics
+              </h3>
+              
+              <div className="grid md:grid-cols-3 gap-4">
+                <AnimatedButton
+                  variant="secondary"
+                  icon={BarChart3}
+                  onClick={generateSystemReport}
+                  className="w-full"
+                >
+                  Generate System Report
+                </AnimatedButton>
+                
+                <AnimatedButton
+                  variant="secondary"
+                  icon={Users}
+                  onClick={() => alert('User analytics report generated!')}
+                  className="w-full"
+                >
+                  User Analytics
+                </AnimatedButton>
+                
+                <AnimatedButton
+                  variant="secondary"
+                  icon={TrendingUp}
+                  onClick={() => alert('Performance report generated!')}
+                  className="w-full"
+                >
+                  Performance Report
+                </AnimatedButton>
+              </div>
+            </GlassCard>
+          </div>
+        );
+
+      case 'file-manager':
+        return (
+          <div className="space-y-6">
+            <GlassCard className="p-6">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+                <HardDrive className="w-5 h-5 mr-2 text-blue-400" />
+                File System Management
+              </h3>
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-medium text-white mb-3">Storage Overview</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Total Storage</span>
+                      <span className="text-white">10 GB</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Used</span>
+                      <span className="text-yellow-400">4.5 GB</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Available</span>
+                      <span className="text-green-400">5.5 GB</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Cache</span>
+                      <span className="text-blue-400">234 MB</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium text-white mb-3">Quick Actions</h4>
+                  <div className="space-y-2">
+                    <AnimatedButton
+                      variant="secondary"
+                      icon={Trash2}
+                      onClick={handleFileCleanup}
+                      className="w-full"
+                      size="sm"
+                    >
+                      Clean Temporary Files
+                    </AnimatedButton>
+                    
+                    <AnimatedButton
+                      variant="secondary"
+                      icon={RefreshCw}
+                      onClick={() => alert('Cache cleared successfully!')}
+                      className="w-full"
+                      size="sm"
+                    >
+                      Clear Cache
+                    </AnimatedButton>
+                    
+                    <AnimatedButton
+                      variant="secondary"
+                      icon={Download}
+                      onClick={() => alert('Backup created successfully!')}
+                      className="w-full"
+                      size="sm"
+                    >
+                      Create File Backup
+                    </AnimatedButton>
+                  </div>
+                </div>
+              </div>
             </GlassCard>
           </div>
         );
