@@ -117,20 +117,15 @@ export class NewsService {
     }
 
     try {
-      // Simulate API delay
+      // Show loading toast
       toast.loading('Generating fresh tech news...', { id: 'news-generation' });
       
+      // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // In production, this would fetch from real APIs like:
-      // - NewsAPI
-      // - TechCrunch API
-      // - Reddit API
-      // - RSS feeds
-      
-      // Shuffle articles and take random selection
+      // Shuffle articles and pick 3-6 randomly
       const shuffledNews = [...mockTechNews].sort(() => Math.random() - 0.5);
-      const selectedNews = shuffledNews.slice(0, Math.floor(Math.random() * 4) + 3); // 3-6 articles
+      const selectedNews = shuffledNews.slice(0, Math.floor(Math.random() * 4) + 3);
       
       const articles: NewsArticle[] = selectedNews.map((article, index) => ({
         id: `auto_${Date.now()}_${index}`,
@@ -151,16 +146,17 @@ export class NewsService {
       this.newsCache = articles;
       this.lastFetch = new Date();
       
-      toast.success(`Generated ${articles.length} fresh tech articles!`, { id: 'news-generation' });
+      // Dismiss loading toast and show success
+      toast.dismiss('news-generation');
+      toast.success(`Generated ${articles.length} fresh tech articles!`);
       
       return articles;
     } catch (error) {
+      toast.dismiss('news-generation');
       console.error('Failed to fetch news:', error);
       return [];
     }
   }
-  
-  toast.dismiss('news-generation');
 
   public async generateNewsUpdate(): Promise<NewsArticle[]> {
     // This would integrate with real news APIs in production
