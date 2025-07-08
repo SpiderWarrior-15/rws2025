@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Play, Plus, Edit, Trash2, Music, Volume2, VolumeX } from 'lucide-react';
 import { GlassCard } from '../components/GlassCard';
 import { AnimatedButton } from '../components/AnimatedButton';
@@ -19,6 +19,28 @@ export const WarriorsPicks: React.FC = () => {
 
   const isAdmin = user?.accountType === 'admin';
 
+  // Load Alan Walker songs from JSON and merge with local songs once
+  useEffect(() => {
+    const loadAlanWalkerSongs = async () => {
+      try {
+        const response = await fetch('/alan-walker-songs.json');
+        if (!response.ok) throw new Error('Failed to fetch Alan Walker songs');
+        const alanWalkerSongs: Song[] = await response.json();
+        // Filter only new songs that aren't already in local storage
+        const newSongs = alanWalkerSongs.filter(
+          (newSong) => !songs.some((s) => s.id === newSong.id)
+        );
+        if (newSongs.length > 0) {
+          setSongs([...songs, ...newSongs]);
+        }
+      } catch (error) {
+        console.error('Error loading Alan Walker songs:', error);
+      }
+    };
+    loadAlanWalkerSongs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleAddSong = () => {
     if (newSong.title && newSong.artist && newSong.embedUrl) {
       const song: Song = {
@@ -34,7 +56,7 @@ export const WarriorsPicks: React.FC = () => {
 
   const handleEditSong = (song: Song) => {
     if (editingSong?.id === song.id) {
-      const updatedSongs = songs.map(s => 
+      const updatedSongs = songs.map(s =>
         s.id === song.id ? { ...song, ...newSong } : s
       );
       setSongs(updatedSongs);
