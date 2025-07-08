@@ -19,7 +19,6 @@ export const Login: React.FC = () => {
     e.preventDefault();
     setError('');
 
-    // Validate input
     if (!formData.email.trim() || !formData.password.trim()) {
       setError('Please enter both email and password');
       playSound('error');
@@ -60,6 +59,21 @@ export const Login: React.FC = () => {
             <p className="text-gray-600 dark:text-gray-400">
               Sign in to your Royal Warriors Squad account
             </p>
+          </div>
+
+          {/* 🌐 Google Sign-In Button */}
+          <div className="mb-6">
+            <button
+              onClick={() => window.location.href = 'http://localhost:5000/auth/google'}
+              className="w-full flex items-center justify-center px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg shadow hover:bg-gray-100 transition"
+            >
+              <img
+                src="https://developers.google.com/identity/images/g-logo.png"
+                alt="Google"
+                className="w-5 h-5 mr-3"
+              />
+              Sign in with Google
+            </button>
           </div>
 
           {error && (
@@ -112,7 +126,6 @@ export const Login: React.FC = () => {
               </div>
             </div>
 
-            {/* Remember Me Checkbox */}
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <input
