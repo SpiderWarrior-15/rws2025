@@ -6,34 +6,6 @@ export const initialSongs: Song[] = [
     id: '1',
     title: 'Faded',
     artist: 'Alan Walker',
-    embedUrl: 'https://www.youtube.com/embed/60ItHLz5WEA',
-  },
-  {
-    id: '2',
-    title: 'Alone',
-    artist: 'Alan Walker',
-    embedUrl: 'https://www.youtube.com/embed/1-xGerv5FOk',
-  },
-  {
-    id: '3',
-    title: 'Darkside',
-    artist: 'Alan Walker ft. Au/Ra and Tomine Harket',
-    embedUrl: 'https://www.youtube.com/embed/M-P4QBt-FWw',
-  },
-  {
-    id: '4',
-    title: 'On My Way',
-    artist: 'Alan Walker, Sabrina Carpenter & Farruko',
-    embedUrl: 'https://www.youtube.com/embed/dhYOPzcsbGM',
-  }
-];
-import { Song } from '../types';
-
-export const initialSongs: Song[] = [
-  {
-    id: '1',
-    title: 'Faded',
-    artist: 'Alan Walker',
     embedUrl: 'https://www.youtube.com/watch?v=60ItHLz5WEA',
   },
   {
