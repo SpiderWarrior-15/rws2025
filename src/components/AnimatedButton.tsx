@@ -50,20 +50,28 @@ export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
       onClick={onClick}
       disabled={disabled}
       className={`
-        inline-flex items-center justify-center font-medium rounded-xl 
-        transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500
+        inline-flex items-center justify-center font-semibold rounded-2xl 
+        transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500
         disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group
+        shadow-lg hover:shadow-xl
         ${getVariantStyles()} ${sizes[size]} ${className}
       `}
-      whileHover={{ scale: disabled ? 1 : 1.05 }}
+      whileHover={{ 
+        scale: disabled ? 1 : 1.05,
+        y: disabled ? 0 : -2,
+        boxShadow: disabled ? undefined : "0 10px 25px rgba(139, 92, 246, 0.3)"
+      }}
       whileTap={{ scale: disabled ? 1 : 0.95 }}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      transition={{ duration: 0.4, type: "spring", stiffness: 200 }}
     >
       {/* Shimmer effect for primary buttons */}
       {variant === 'primary' && (
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+        <>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1200" />
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        </>
       )}
 
       {/* Optional icon if provided */}

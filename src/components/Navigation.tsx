@@ -135,15 +135,16 @@ export const Navigation: React.FC = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3 group">
             <motion.div 
-              className="relative w-12 h-12"
+              className="relative w-12 h-12 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-yellow-400/20 to-yellow-600/20 backdrop-blur-sm border border-yellow-500/30"
               whileHover={{ scale: 1.1, rotate: 5 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
               <img 
                 src="/image.png" 
                 alt="Royal Warriors Squad" 
-                className="w-full h-full object-contain filter drop-shadow-lg interactive"
+                className="w-full h-full object-contain filter drop-shadow-lg interactive rounded-2xl"
               />
+              <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/10 to-transparent rounded-2xl"></div>
             </motion.div>
             <div className="hidden sm:block">
               <motion.span 

@@ -118,13 +118,18 @@ export const Home: React.FC = () => {
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1, delay: 0.5 }}
-            className="mb-8 flex justify-center"
+            className="mb-8 flex justify-center relative"
           >
             <motion.div 
-              className="w-32 h-32 md:w-40 md:h-40"
+              className="w-32 h-32 md:w-40 md:h-40 rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-yellow-400/30 to-yellow-600/30 backdrop-blur-lg border-2 border-yellow-500/40 relative"
               animate={{ 
                 rotate: [0, 5, -5, 0],
-                scale: [1, 1.05, 1]
+                scale: [1, 1.05, 1],
+                boxShadow: [
+                  "0 20px 40px rgba(234, 179, 8, 0.3)",
+                  "0 25px 50px rgba(234, 179, 8, 0.5)",
+                  "0 20px 40px rgba(234, 179, 8, 0.3)"
+                ]
               }}
               transition={{ 
                 duration: 4, 
@@ -135,8 +140,11 @@ export const Home: React.FC = () => {
               <img 
                 src="/image.png" 
                 alt="Royal Warriors Squad" 
-                className="w-full h-full object-contain filter drop-shadow-2xl"
+                className="w-full h-full object-contain filter drop-shadow-2xl rounded-3xl"
               />
+              <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/20 via-transparent to-yellow-600/20 rounded-3xl"></div>
+              <div className="absolute inset-0 rounded-3xl ring-1 ring-inset ring-yellow-500/20"></div>
+              <div className="absolute -inset-1 bg-gradient-to-r from-yellow-600 to-yellow-400 rounded-3xl blur opacity-20 animate-pulse"></div>
             </motion.div>
           </motion.div>
 

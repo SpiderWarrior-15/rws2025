@@ -175,12 +175,13 @@ export const SignUp: React.FC = () => {
       <div className="max-w-2xl w-full mx-4">
         <GlassCard className="p-8">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 mb-4">
+            <div className="inline-flex items-center justify-center w-20 h-20 mb-4 rounded-3xl overflow-hidden shadow-xl bg-gradient-to-br from-yellow-400/30 to-yellow-600/30 backdrop-blur-lg border-2 border-yellow-500/40 relative">
               <img 
                 src="/image.png" 
                 alt="Royal Warriors Squad" 
-                className="w-full h-full object-contain filter drop-shadow-lg"
+                className="w-full h-full object-contain filter drop-shadow-lg rounded-3xl"
               />
+              <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/20 via-transparent to-yellow-600/20 rounded-3xl"></div>
             </div>
             <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
               Join the Royal Warriors Squad

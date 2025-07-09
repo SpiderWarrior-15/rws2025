@@ -27,12 +27,13 @@ export const Footer: React.FC = () => {
           {/* Logo and Description */}
           <div className="space-y-4">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10">
+              <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-lg bg-gradient-to-br from-yellow-400/20 to-yellow-600/20 backdrop-blur-sm border border-yellow-500/30">
                 <img 
                   src="/image.png" 
                   alt="Royal Warriors Squad" 
-                  className="w-full h-full object-contain filter drop-shadow-lg"
+                  className="w-full h-full object-contain filter drop-shadow-lg rounded-2xl"
                 />
+                <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/10 to-transparent rounded-2xl"></div>
               </div>
               <div>
                 <span className="text-lg font-bold bg-gradient-to-r from-yellow-400 to-yellow-500 bg-clip-text text-transparent">

@@ -1,1513 +1,638 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import {
-  Users, Bot, Database, FileText, Code, Terminal, Wifi, HardDrive, Cpu, MemoryStick,
-  Settings,
-  MessageSquare,
-  Star,
-  Crown,
-  Brain,
-  Shield,
-  BarChart3,
+import { 
+  Users, 
+  Brain, 
+  MessageCircle, 
+  Calendar, 
+  Star, 
+  Settings, 
+  Shield, 
   Activity,
   TrendingUp,
+  Award,
+  Crown,
+  Zap,
+  Target,
+  BarChart3,
+  UserCheck,
+  Clock,
+  AlertTriangle,
   CheckCircle,
   XCircle,
-  Clock,
-  Award,
-  Zap,
-  Eye,
   Edit,
   Trash2,
-  Search,
-  Filter,
-  RefreshCw,
-  Download,
-  Upload,
-  Calendar,
-  Mail,
-  Phone,
-  MapPin,
-  User,
-  AlertCircle,
-  Target,
-  Sparkles,
-  Globe,
-  Smartphone,
-  Monitor,
-  Tablet,
-  Server, Network, Shield as ShieldIcon, Lock, Unlock, Power, PowerOff, CheckSquare, Square
+  Plus
 } from 'lucide-react';
 import { GlassCard } from '../components/GlassCard';
 import { AnimatedButton } from '../components/AnimatedButton';
+import { WarriorCard } from '../components/WarriorCard';
+import { MarkingModal } from '../components/MarkingModal';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useAuth } from '../hooks/useAuth';
-import { useRealtime } from '../contexts/RealtimeContext';
-import {
-  UserAccount,
-  MarkingCriteria,
-  Mark,
-  ContactMessage,
-  HomepageContent,
-  PuzzleAttempt,
-  Puzzle,
+import { 
+  UserAccount, 
+  PuzzleAttempt, 
+  MarkingCriteria, 
+  Mark, 
+  WarriorMember, 
+  MarkingSummary,
   ChatMessage,
   Event,
-  Song
+  ContactMessage
 } from '../types';
-import {
-  initialMarkingCriteria,
-  initialHomepageContent,
-  getScoreByDifficulty,
-} from '../utils/initialData';
+import { initialMarkingCriteria } from '../utils/initialData';
 
 export const Admin: React.FC = () => {
-  const { user, updateAccount } = useAuth();
-  const { broadcastUpdate } = useRealtime();
+  const { user } = useAuth();
   const [accounts, setAccounts] = useLocalStorage<UserAccount[]>('rws-accounts', []);
-  const [criteria] = useLocalStorage<MarkingCriteria[]>('rws-marking-criteria', initialMarkingCriteria);
-  const [marks] = useLocalStorage<Mark[]>('rws-marks', []);
-  const [messages, setMessages] = useLocalStorage<ContactMessage[]>('rws-messages', []);
-  const [content] = useLocalStorage<HomepageContent>('rws-homepage-content', initialHomepageContent);
   const [attempts, setAttempts] = useLocalStorage<PuzzleAttempt[]>('rws-puzzle-attempts', []);
-  const [puzzles, setPuzzles] = useLocalStorage<Puzzle[]>('rws-puzzles', []);
-  const [chatMessages] = useLocalStorage<ChatMessage[]>('rws-chat-messages', []);
+  const [criteria, setCriteria] = useLocalStorage<MarkingCriteria[]>('rws-marking-criteria', initialMarkingCriteria);
+  const [marks, setMarks] = useLocalStorage<Mark[]>('rws-marks', []);
+  const [messages] = useLocalStorage<ChatMessage[]>('rws-chat-messages', []);
   const [events] = useLocalStorage<Event[]>('rws-events', []);
-  const [songs] = useLocalStorage<Song[]>('rws-songs', []);
-
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [selectedAttempts, setSelectedAttempts] = useState<string[]>([]);
-
-  // AI Center states
-  const [aiKnowledge, setAiKnowledge] = useLocalStorage<string[]>('rws-ai-knowledge', []);
-  const [newKnowledge, setNewKnowledge] = useState('');
-  const [systemLogs, setSystemLogs] = useLocalStorage<any[]>('rws-system-logs', []);
-  const [errorLogs, setErrorLogs] = useLocalStorage<any[]>('rws-error-logs', []);
-  const [systemStatus, setSystemStatus] = useLocalStorage<any>('rws-system-status', {
-    aiService: 'online',
-    database: 'connected',
-    newsService: 'active',
-    chatService: 'online',
-    fileSystem: 'healthy',
-    lastOptimization: null
+  const [contactMessages] = useLocalStorage<ContactMessage[]>('rws-messages', []);
+  
+  const [activeTab, setActiveTab] = useState<'overview' | 'warriors' | 'puzzles' | 'marking'>('overview');
+  const [selectedWarrior, setSelectedWarrior] = useState<WarriorMember | null>(null);
+  const [isMarkingModalOpen, setIsMarkingModalOpen] = useState(false);
+  const [newCriteria, setNewCriteria] = useState({
+    name: '',
+    description: '',
+    maxScore: 10,
+    category: 'participation' as const
   });
+  const [isAddingCriteria, setIsAddingCriteria] = useState(false);
 
-  // Real-time updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      broadcastUpdate('admin_refresh', { timestamp: Date.now() });
-    }, 30000); // Refresh every 30 seconds
-
-    return () => clearInterval(interval);
-  }, [broadcastUpdate]);
-
-  // Filter accounts based on search and status
-  const filteredAccounts = accounts.filter(acc => {
-    const matchesSearch = acc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         acc.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || acc.status === filterStatus;
-    return matchesSearch && matchesStatus && acc.email !== 'spiderwarrior15@gmail.com';
-  });
-
-  // Get pending puzzle attempts
-  const pendingAttempts = attempts.filter(attempt => attempt.isCorrect === null);
-  const unreadMessages = messages.filter(msg => !msg.isRead);
-
-  // Calculate statistics
+  // Calculate dashboard stats
   const stats = {
-    totalUsers: accounts.filter(acc => acc.status === 'approved').length,
+    totalWarriors: accounts.filter(acc => acc.status === 'approved').length,
     pendingApprovals: accounts.filter(acc => acc.status === 'pending').length,
-    totalPuzzles: puzzles.length,
-    activePuzzles: puzzles.filter(p => p.isActive).length,
-    totalAttempts: attempts.length,
-    correctAttempts: attempts.filter(a => a.isCorrect === true).length,
-    pendingReviews: pendingAttempts.length,
-    unreadMessages: unreadMessages.length,
+    totalPuzzleAttempts: attempts.length,
+    correctAttempts: attempts.filter(att => att.isCorrect === true).length,
+    pendingReviews: attempts.filter(att => att.isCorrect === null).length,
+    totalMessages: messages.length,
     totalEvents: events.length,
-    totalSongs: songs.length,
-    totalChatMessages: chatMessages.length,
-    totalMarks: marks.length
+    unreadMessages: contactMessages.filter(msg => !msg.isRead).length
   };
 
-  // Device analytics (simulated)
-  const deviceStats = {
-    desktop: Math.floor(stats.totalUsers * 0.6),
-    mobile: Math.floor(stats.totalUsers * 0.35),
-    tablet: Math.floor(stats.totalUsers * 0.05)
+  // Get warrior members with marking summaries
+  const getWarriorMembers = (): WarriorMember[] => {
+    return accounts
+      .filter(acc => acc.status === 'approved')
+      .map(acc => ({
+        id: acc.id,
+        name: acc.name,
+        email: acc.email,
+        joinDate: acc.createdAt,
+        avatar: acc.avatar,
+        isActive: true,
+        provider: acc.provider,
+        accountType: acc.accountType,
+        role: acc.role
+      }));
   };
 
-  // Handle role toggle
-  const handleRoleToggle = (accountId: string) => {
-    const account = accounts.find(acc => acc.id === accountId);
-    if (!account) return;
+  const getMarkingSummary = (warriorId: string): MarkingSummary => {
+    const warriorMarks = marks.filter(m => m.warriorId === warriorId);
+    const totalScore = warriorMarks.reduce((sum, mark) => sum + mark.score, 0);
+    const averageScore = warriorMarks.length > 0 ? totalScore / warriorMarks.length : 0;
     
-    const newRole = account.role === 'Warrior' ? 'Commander' : 'Warrior';
-    const updatedAccounts = accounts.map(acc =>
-      acc.id === accountId ? { ...acc, role: newRole } : acc
-    );
-    setAccounts(updatedAccounts);
-    updateAccount(accountId, { role: newRole });
-    broadcastUpdate('role_updated', { accountId, newRole });
-  };
-
-  // Handle account status change
-  const handleStatusChange = (accountId: string, newStatus: 'approved' | 'rejected') => {
-    const updatedAccounts = accounts.map(acc =>
-      acc.id === accountId ? { 
-        ...acc, 
-        status: newStatus,
-        approvedAt: newStatus === 'approved' ? new Date().toISOString() : undefined,
-        approvedBy: newStatus === 'approved' ? user?.username : undefined
-      } : acc
-    );
-    setAccounts(updatedAccounts);
-    broadcastUpdate('account_status_updated', { accountId, newStatus });
-  };
-
-  // Handle puzzle attempt review
-  const handleAttemptReview = (attemptId: string, isCorrect: boolean) => {
-    const attempt = attempts.find(a => a.id === attemptId);
-    if (!attempt) return;
-
-    const puzzle = puzzles.find(p => p.id === attempt.puzzleId);
-    if (!puzzle) return;
-
-    const score = isCorrect ? getScoreByDifficulty(puzzle.difficulty) : 0;
-    
-    const updatedAttempts = attempts.map(a =>
-      a.id === attemptId ? {
-        ...a,
-        isCorrect,
-        score,
-        reviewedAt: new Date().toISOString(),
-        reviewedBy: user?.username || 'admin'
-      } : a
-    );
-    
-    setAttempts(updatedAttempts);
-    broadcastUpdate('attempt_reviewed', { attemptId, isCorrect, score });
-  };
-
-  // Handle bulk attempt review
-  const handleBulkReview = (isCorrect: boolean) => {
-    if (selectedAttempts.length === 0) return;
-
-    const updatedAttempts = attempts.map(attempt => {
-      if (selectedAttempts.includes(attempt.id)) {
-        const puzzle = puzzles.find(p => p.id === attempt.puzzleId);
-        const score = isCorrect && puzzle ? getScoreByDifficulty(puzzle.difficulty) : 0;
-        
-        return {
-          ...attempt,
-          isCorrect,
-          score,
-          reviewedAt: new Date().toISOString(),
-          reviewedBy: user?.username || 'admin'
-        };
+    const categoryScores: Record<string, number> = {};
+    criteria.forEach(c => {
+      const categoryMarks = warriorMarks.filter(m => {
+        const markCriteria = criteria.find(cr => cr.id === m.criteriaId);
+        return markCriteria?.category === c.category;
+      });
+      if (categoryMarks.length > 0) {
+        categoryScores[c.category] = categoryMarks.reduce((sum, mark) => sum + mark.score, 0);
       }
-      return attempt;
     });
-    
-    setAttempts(updatedAttempts);
-    setSelectedAttempts([]);
-    broadcastUpdate('bulk_review_completed', { count: selectedAttempts.length, isCorrect });
+
+    return {
+      warriorId,
+      totalScore,
+      averageScore,
+      markCount: warriorMarks.length,
+      categoryScores,
+      lastMarked: warriorMarks.length > 0 ? warriorMarks[warriorMarks.length - 1].markedAt : ''
+    };
   };
 
-  // Handle message actions
-  const handleMarkMessageAsRead = (messageId: string) => {
-    const updatedMessages = messages.map(msg =>
-      msg.id === messageId ? { ...msg, isRead: true } : msg
-    );
-    setMessages(updatedMessages);
-    broadcastUpdate('message_read', { messageId });
+  const handleApproveAccount = (accountId: string) => {
+    setAccounts(accounts.map(acc => 
+      acc.id === accountId 
+        ? { 
+            ...acc, 
+            status: 'approved', 
+            approvedAt: new Date().toISOString(),
+            approvedBy: user?.username || 'admin'
+          }
+        : acc
+    ));
   };
 
-  const handleDeleteMessage = (messageId: string) => {
-    const updatedMessages = messages.filter(msg => msg.id !== messageId);
-    setMessages(updatedMessages);
-    broadcastUpdate('message_deleted', { messageId });
-  };
-  
-  // AI Center functions
-  const handleAddKnowledge = () => {
-    if (newKnowledge.trim()) {
-      const knowledge = {
-        id: Date.now().toString(),
-        content: newKnowledge.trim(),
-        addedAt: new Date().toISOString(),
-        addedBy: user?.username || 'admin'
-      };
-      setAiKnowledge([...aiKnowledge, knowledge]);
-      setNewKnowledge('');
-      broadcastUpdate('ai_knowledge_added', knowledge);
-    }
-  };
-  
-  const handleDeleteKnowledge = (id: string) => {
-    setAiKnowledge(aiKnowledge.filter(k => k.id !== id));
-    broadcastUpdate('ai_knowledge_deleted', { id });
-  };
-  
-  const handleClearLogs = (type: 'system' | 'error') => {
-    if (type === 'system') {
-      setSystemLogs([]);
-    } else {
-      setErrorLogs([]);
-    }
-    broadcastUpdate('logs_cleared', { type });
-  };
-  
-  const handleSystemOptimization = () => {
-    // Simulate system optimization
-    const log = {
-      id: Date.now().toString(),
-      type: 'optimization',
-      message: 'System optimization completed successfully',
-      timestamp: new Date().toISOString(),
-      details: 'Cleaned cache, optimized database, removed unused files'
-    };
-    setSystemLogs([log, ...systemLogs]);
-    alert('System optimization completed!');
-  };
-  
-  const handleServiceToggle = (service: string) => {
-    const newStatus = { ...systemStatus };
-    newStatus[service] = newStatus[service] === 'online' ? 'offline' : 'online';
-    setSystemStatus(newStatus);
-    
-    const log = {
-      id: Date.now().toString(),
-      type: 'service',
-      message: `${service} service ${newStatus[service]}`,
-      timestamp: new Date().toISOString(),
-      details: `Service status changed by ${user?.username}`
-    };
-    setSystemLogs([log, ...systemLogs]);
-  };
-  
-  const handleDatabaseBackup = () => {
-    const log = {
-      id: Date.now().toString(),
-      type: 'backup',
-      message: 'Database backup completed successfully',
-      timestamp: new Date().toISOString(),
-      details: 'Full database backup created and stored securely'
-    };
-    setSystemLogs([log, ...systemLogs]);
-    alert('Database backup completed successfully!');
-  };
-  
-  const handleFileCleanup = () => {
-    const log = {
-      id: Date.now().toString(),
-      type: 'cleanup',
-      message: 'File system cleanup completed',
-      timestamp: new Date().toISOString(),
-      details: 'Removed temporary files, cleared cache, optimized storage'
-    };
-    setSystemLogs([log, ...systemLogs]);
-    alert('File system cleanup completed!');
-  };
-  
-  const handleSecurityScan = () => {
-    const log = {
-      id: Date.now().toString(),
-      type: 'security',
-      message: 'Security scan completed - No threats detected',
-      timestamp: new Date().toISOString(),
-      details: 'Full system security scan performed, all systems secure'
-    };
-    setSystemLogs([log, ...systemLogs]);
-    alert('Security scan completed - System is secure!');
-  };
-  
-  const generateSystemReport = () => {
-    const report = {
-      timestamp: new Date().toISOString(),
-      systemStatus,
-      totalUsers: stats.totalUsers,
-      totalPuzzles: stats.totalPuzzles,
-      totalEvents: stats.totalEvents,
-      recentLogs: systemLogs.slice(0, 10)
-    };
-    
-    // In a real app, this would generate a downloadable report
-    console.log('System Report:', report);
-    alert('System report generated! Check console for details.');
+  const handleRejectAccount = (accountId: string, reason: string) => {
+    setAccounts(accounts.map(acc => 
+      acc.id === accountId 
+        ? { 
+            ...acc, 
+            status: 'rejected',
+            rejectionReason: reason
+          }
+        : acc
+    ));
   };
 
-  // Get user name
-  const getUserName = (userId: string) => {
-    const account = accounts.find(acc => acc.id === userId);
-    return account?.name || 'Unknown User';
+  const handleReviewPuzzleAttempt = (attemptId: string, isCorrect: boolean) => {
+    setAttempts(attempts.map(att => 
+      att.id === attemptId 
+        ? { 
+            ...att, 
+            isCorrect,
+            reviewedAt: new Date().toISOString(),
+            reviewedBy: user?.username || 'admin'
+          }
+        : att
+    ));
   };
 
-  // Tab configuration
-  const tabs = [
-    { 
-      id: 'dashboard', 
-      label: 'Dashboard', 
-      icon: BarChart3, 
-      count: 0,
-      description: 'Overview and analytics'
-    },
-    { 
-      id: 'accounts', 
-      label: 'Account Management', 
-      icon: Users, 
-      count: filteredAccounts.length,
-      description: 'Manage user accounts'
-    },
-    { 
-      id: 'puzzle-correction', 
-      label: 'Puzzle Correction', 
-      icon: Brain, 
-      count: pendingAttempts.length,
-      description: 'Review puzzle submissions'
-    },
-    { 
-      id: 'warriors', 
-      label: 'Warriors List', 
-      icon: Shield, 
-      count: accounts.filter(acc => acc.status === 'approved').length,
-      description: 'View all warriors'
-    },
-    { 
-      id: 'criteria', 
-      label: 'Marking Criteria', 
-      icon: Star, 
-      count: criteria.filter(c => c.isActive).length,
-      description: 'Manage marking criteria'
-    },
-    { 
-      id: 'marks', 
-      label: 'Warrior Marks', 
-      icon: Crown, 
-      count: marks.length,
-      description: 'View all marks'
-    },
-    { 
-      id: 'messages', 
-      label: 'Contact Messages', 
-      icon: MessageSquare, 
-      count: unreadMessages.length,
-      description: 'Handle contact messages'
-    },
-    { 
-      id: 'analytics', 
-      label: 'Analytics', 
-      icon: TrendingUp, 
-      count: 0,
-      description: 'Platform analytics'
-    },
-    { 
-      id: 'ai-center', 
-      label: 'AI Center', 
-      icon: Bot, 
-      count: aiKnowledge.length,
-      description: 'Manage AI assistant'
-    },
-    { 
-      id: 'system-management', 
-      label: 'System Management', 
-      icon: Server, 
-      count: 0,
-      description: 'Advanced system controls'
-    },
-    { 
-      id: 'file-manager', 
-      label: 'File Manager', 
-      icon: HardDrive, 
-      count: 0,
-      description: 'Manage system files'
-    },
-    { 
-      id: 'homepage', 
-      label: 'Homepage Content', 
-      icon: Settings, 
-      count: 0,
-      description: 'Manage homepage'
-    }
+  const handleMarkWarrior = (warrior: WarriorMember) => {
+    setSelectedWarrior(warrior);
+    setIsMarkingModalOpen(true);
+  };
+
+  const handleSubmitMark = (mark: Omit<Mark, 'id' | 'markedAt'>) => {
+    const newMark: Mark = {
+      ...mark,
+      id: Date.now().toString(),
+      markedAt: new Date().toISOString()
+    };
+    setMarks([...marks, newMark]);
+    setIsMarkingModalOpen(false);
+    setSelectedWarrior(null);
+  };
+
+  const handleAddCriteria = () => {
+    if (!newCriteria.name || !newCriteria.description) return;
+
+    const criteria_item: MarkingCriteria = {
+      id: Date.now().toString(),
+      ...newCriteria,
+      isActive: true,
+      createdAt: new Date().toISOString()
+    };
+
+    setCriteria([...criteria, criteria_item]);
+    setNewCriteria({ name: '', description: '', maxScore: 10, category: 'participation' });
+    setIsAddingCriteria(false);
+  };
+
+  const handleToggleCriteria = (criteriaId: string) => {
+    setCriteria(criteria.map(c => 
+      c.id === criteriaId ? { ...c, isActive: !c.isActive } : c
+    ));
+  };
+
+  const handleDeleteCriteria = (criteriaId: string) => {
+    setCriteria(criteria.filter(c => c.id !== criteriaId));
+    setMarks(marks.filter(m => m.criteriaId !== criteriaId));
+  };
+
+  const warriors = getWarriorMembers();
+  const pendingAttempts = attempts.filter(att => att.isCorrect === null);
+  const pendingAccounts = accounts.filter(acc => acc.status === 'pending');
+
+  const tabItems = [
+    { id: 'overview', name: 'Overview', icon: BarChart3 },
+    { id: 'warriors', name: 'Warriors', icon: Users },
+    { id: 'puzzles', name: 'Puzzle Reviews', icon: Brain },
+    { id: 'marking', name: 'Marking System', icon: Star }
   ];
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return (
-          <div className="space-y-6">
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { label: 'Total Users', value: stats.totalUsers, icon: Users, color: 'from-blue-500 to-blue-600' },
-                { label: 'Pending Reviews', value: stats.pendingReviews, icon: Clock, color: 'from-yellow-500 to-yellow-600' },
-                { label: 'Active Puzzles', value: stats.activePuzzles, icon: Brain, color: 'from-purple-500 to-purple-600' },
-                { label: 'Unread Messages', value: stats.unreadMessages, icon: Mail, color: 'from-red-500 to-red-600' }
-              ].map((stat, index) => (
-                <motion.div
-                  key={stat.label}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <GlassCard className="p-4 text-center">
-                    <div className={`w-12 h-12 bg-gradient-to-r ${stat.color} rounded-full flex items-center justify-center mx-auto mb-3`}>
-                      <stat.icon className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="text-2xl font-bold text-white mb-1">{stat.value}</div>
-                    <div className="text-sm text-gray-400">{stat.label}</div>
-                  </GlassCard>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Platform Overview */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <GlassCard className="p-6">
-                <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                  <Activity className="w-5 h-5 mr-2 text-green-400" />
-                  Platform Activity
-                </h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Total Attempts</span>
-                    <span className="font-bold text-white">{stats.totalAttempts}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Correct Answers</span>
-                    <span className="font-bold text-green-400">{stats.correctAttempts}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Success Rate</span>
-                    <span className="font-bold text-blue-400">
-                      {stats.totalAttempts > 0 ? Math.round((stats.correctAttempts / stats.totalAttempts) * 100) : 0}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Chat Messages</span>
-                    <span className="font-bold text-purple-400">{stats.totalChatMessages}</span>
-                  </div>
-                </div>
-              </GlassCard>
-
-              <GlassCard className="p-6">
-                <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                  <Globe className="w-5 h-5 mr-2 text-blue-400" />
-                  Device Analytics
-                </h3>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Monitor className="w-4 h-4 text-blue-400" />
-                      <span className="text-gray-300">Desktop</span>
-                    </div>
-                    <span className="font-bold text-white">{deviceStats.desktop}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Smartphone className="w-4 h-4 text-green-400" />
-                      <span className="text-gray-300">Mobile</span>
-                    </div>
-                    <span className="font-bold text-white">{deviceStats.mobile}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Tablet className="w-4 h-4 text-purple-400" />
-                      <span className="text-gray-300">Tablet</span>
-                    </div>
-                    <span className="font-bold text-white">{deviceStats.tablet}</span>
-                  </div>
-                </div>
-              </GlassCard>
-            </div>
-
-            {/* Recent Activity */}
-            <GlassCard className="p-6">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                <Clock className="w-5 h-5 mr-2 text-yellow-400" />
-                Recent Activity
-              </h3>
-              <div className="space-y-3">
-                {pendingAttempts.slice(0, 5).map(attempt => {
-                  const puzzle = puzzles.find(p => p.id === attempt.puzzleId);
-                  return (
-                    <div key={attempt.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-                      <div>
-                        <div className="text-white font-medium">{getUserName(attempt.userId)}</div>
-                        <div className="text-sm text-gray-400">
-                          Submitted answer for {puzzle?.difficulty} puzzle
-                        </div>
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {new Date(attempt.submittedAt).toLocaleDateString()}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </GlassCard>
-          </div>
-        );
-
-      case 'accounts':
-        return (
-          <div className="space-y-6">
-            {/* Search and Filter */}
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white selectable"
-                  placeholder="Search accounts..."
-                />
-              </div>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white"
-              >
-                <option value="all">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-              </select>
-            </div>
-
-            {/* Accounts List */}
-            <div className="space-y-4">
-              {filteredAccounts.map(account => (
-                <GlassCard key={account.id} className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center">
-                        {account.avatar ? (
-                          <img src={account.avatar} alt={account.name} className="w-full h-full rounded-full object-cover" />
-                        ) : (
-                          <User className="w-6 h-6 text-white" />
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-white">{account.name}</h3>
-                        <p className="text-sm text-gray-400">{account.email}</p>
-                        <div className="flex items-center space-x-2 mt-1">
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            account.status === 'approved' ? 'bg-green-500/20 text-green-400' :
-                            account.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                            'bg-red-500/20 text-red-400'
-                          }`}>
-                            {account.status}
-                          </span>
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            account.role === 'Commander' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400'
-                          }`}>
-                            {account.role}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {account.status === 'pending' && (
-                        <>
-                          <AnimatedButton
-                            variant="primary"
-                            size="sm"
-                            icon={CheckCircle}
-                            onClick={() => handleStatusChange(account.id, 'approved')}
-                          >
-                            Approve
-                          </AnimatedButton>
-                          <AnimatedButton
-                            variant="ghost"
-                            size="sm"
-                            icon={XCircle}
-                            onClick={() => handleStatusChange(account.id, 'rejected')}
-                            className="text-red-400"
-                          >
-                            Reject
-                          </AnimatedButton>
-                        </>
-                      )}
-                      {account.status === 'approved' && (
-                        <AnimatedButton
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => handleRoleToggle(account.id)}
-                        >
-                          Toggle Role
-                        </AnimatedButton>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Additional Info */}
-                  <div className="mt-4 grid md:grid-cols-3 gap-4 text-sm">
-                    <div className="flex items-center space-x-2 text-gray-400">
-                      <Phone className="w-4 h-4" />
-                      <span>{account.whatsapp}</span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-gray-400">
-                      <MapPin className="w-4 h-4" />
-                      <span>{account.city}, {account.country}</span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-gray-400">
-                      <Calendar className="w-4 h-4" />
-                      <span>{new Date(account.createdAt).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                </GlassCard>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 'puzzle-correction':
-        return (
-          <div className="space-y-6">
-            {/* Bulk Actions */}
-            {selectedAttempts.length > 0 && (
-              <GlassCard className="p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-white">{selectedAttempts.length} attempts selected</span>
-                  <div className="flex space-x-2">
-                    <AnimatedButton
-                      variant="primary"
-                      size="sm"
-                      icon={CheckCircle}
-                      onClick={() => handleBulkReview(true)}
-                    >
-                      Approve All
-                    </AnimatedButton>
-                    <AnimatedButton
-                      variant="ghost"
-                      size="sm"
-                      icon={XCircle}
-                      onClick={() => handleBulkReview(false)}
-                      className="text-red-400"
-                    >
-                      Reject All
-                    </AnimatedButton>
-                    <AnimatedButton
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setSelectedAttempts([])}
-                    >
-                      Clear
-                    </AnimatedButton>
-                  </div>
-                </div>
-              </GlassCard>
-            )}
-
-            {/* Pending Attempts */}
-            <div className="space-y-4">
-              {pendingAttempts.length === 0 ? (
-                <GlassCard className="p-8 text-center">
-                  <Brain className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-medium text-gray-400 mb-2">No pending reviews</h3>
-                  <p className="text-gray-500">All puzzle attempts have been reviewed!</p>
-                </GlassCard>
-              ) : (
-                pendingAttempts.map(attempt => {
-                  const puzzle = puzzles.find(p => p.id === attempt.puzzleId);
-                  const isSelected = selectedAttempts.includes(attempt.id);
-                  
-                  return (
-                    <GlassCard key={attempt.id} className={`p-6 ${isSelected ? 'ring-2 ring-purple-500' : ''}`}>
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start space-x-4 flex-1">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedAttempts([...selectedAttempts, attempt.id]);
-                              } else {
-                                setSelectedAttempts(selectedAttempts.filter(id => id !== attempt.id));
-                              }
-                            }}
-                            className="mt-1"
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <h3 className="text-lg font-bold text-white">{getUserName(attempt.userId)}</h3>
-                              <span className={`px-2 py-1 text-xs rounded-full ${
-                                puzzle?.difficulty === 'easy' ? 'bg-green-500/20 text-green-400' :
-                                puzzle?.difficulty === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                                puzzle?.difficulty === 'hard' ? 'bg-red-500/20 text-red-400' :
-                                'bg-purple-500/20 text-purple-400'
-                              }`}>
-                                {puzzle?.difficulty?.toUpperCase()} • {puzzle ? getScoreByDifficulty(puzzle.difficulty) : 0} PTS
-                              </span>
-                            </div>
-                            
-                            <div className="bg-white/5 rounded-lg p-4 mb-4">
-                              <h4 className="font-medium text-white mb-2">Question:</h4>
-                              <p className="text-gray-300 mb-4 selectable">{puzzle?.question}</p>
-                              
-                              <div className="grid md:grid-cols-2 gap-4">
-                                <div>
-                                  <h5 className="font-medium text-green-400 mb-1">Correct Answer:</h5>
-                                  <p className="text-green-300 font-mono selectable">{puzzle?.answer}</p>
-                                </div>
-                                <div>
-                                  <h5 className="font-medium text-blue-400 mb-1">User Answer:</h5>
-                                  <p className="text-blue-300 font-mono selectable">{attempt.userAnswer}</p>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div className="text-sm text-gray-400">
-                              Submitted: {new Date(attempt.submittedAt).toLocaleString()}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex space-x-2 ml-4">
-                          <AnimatedButton
-                            variant="primary"
-                            size="sm"
-                            icon={CheckCircle}
-                            onClick={() => handleAttemptReview(attempt.id, true)}
-                          >
-                            Correct
-                          </AnimatedButton>
-                          <AnimatedButton
-                            variant="ghost"
-                            size="sm"
-                            icon={XCircle}
-                            onClick={() => handleAttemptReview(attempt.id, false)}
-                            className="text-red-400"
-                          >
-                            Incorrect
-                          </AnimatedButton>
-                        </div>
-                      </div>
-                    </GlassCard>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        );
-
-      case 'warriors':
-        return (
-          <div className="space-y-4">
-            {accounts.filter(acc => acc.status === 'approved' && acc.email !== 'spiderwarrior15@gmail.com').map(account => (
-              <GlassCard key={account.id} className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center">
-                      {account.avatar ? (
-                        <img src={account.avatar} alt={account.name} className="w-full h-full rounded-full object-cover" />
-                      ) : (
-                        <User className="w-6 h-6 text-white" />
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-white">{account.name}</h3>
-                      <p className="text-sm text-gray-400">{account.email}</p>
-                      <span className={`inline-block px-2 py-1 text-xs rounded-full mt-1 ${
-                        account.role === 'Commander' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400'
-                      }`}>
-                        {account.role}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-sm text-gray-400">
-                    Joined: {new Date(account.createdAt).toLocaleDateString()}
-                  </div>
-                </div>
-              </GlassCard>
-            ))}
-          </div>
-        );
-
-      case 'criteria':
-        return (
-          <div className="space-y-4">
-            {criteria.map(criterion => (
-              <GlassCard key={criterion.id} className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-white">{criterion.name}</h3>
-                    <p className="text-sm text-gray-400 selectable">{criterion.description}</p>
-                    <div className="flex items-center space-x-4 mt-2 text-sm">
-                      <span className="text-purple-400">Max Score: {criterion.maxScore}</span>
-                      <span className="text-blue-400">Category: {criterion.category}</span>
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        criterion.isActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'
-                      }`}>
-                        {criterion.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </GlassCard>
-            ))}
-          </div>
-        );
-
-      case 'marks':
-        return (
-          <div className="space-y-4">
-            {marks.map(mark => {
-              const criterion = criteria.find(c => c.id === mark.criteriaId);
-              return (
-                <GlassCard key={mark.id} className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-bold text-white">{getUserName(mark.warriorId)}</h3>
-                      <p className="text-sm text-gray-400">{criterion?.name}</p>
-                      <div className="flex items-center space-x-4 mt-2 text-sm">
-                        <span className="text-yellow-400">Score: {mark.score}/{criterion?.maxScore}</span>
-                        <span className="text-blue-400">By: {mark.markedBy}</span>
-                      </div>
-                      {mark.feedback && (
-                        <p className="text-sm text-gray-300 mt-2 selectable">{mark.feedback}</p>
-                      )}
-                    </div>
-                    <div className="text-sm text-gray-400">
-                      {new Date(mark.markedAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                </GlassCard>
-              );
-            })}
-          </div>
-        );
-
-      case 'messages':
-        return (
-          <div className="space-y-4">
-            {messages.map(message => (
-              <GlassCard key={message.id} className={`p-6 ${!message.isRead ? 'ring-2 ring-blue-500' : ''}`}>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <h3 className="text-lg font-bold text-white">{message.name}</h3>
-                      <span className="text-sm text-gray-400">({message.email})</span>
-                      {!message.isRead && (
-                        <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full">
-                          New
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-gray-300 mb-4 selectable">{message.message}</p>
-                    <div className="text-sm text-gray-400">
-                      {new Date(message.timestamp).toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="flex space-x-2 ml-4">
-                    {!message.isRead && (
-                      <AnimatedButton
-                        variant="primary"
-                        size="sm"
-                        icon={Eye}
-                        onClick={() => handleMarkMessageAsRead(message.id)}
-                      >
-                        Mark Read
-                      </AnimatedButton>
-                    )}
-                    <AnimatedButton
-                      variant="ghost"
-                      size="sm"
-                      icon={Trash2}
-                      onClick={() => handleDeleteMessage(message.id)}
-                      className="text-red-400"
-                    >
-                      Delete
-                    </AnimatedButton>
-                  </div>
-                </div>
-              </GlassCard>
-            ))}
-          </div>
-        );
-
-      case 'analytics':
-        return (
-          <div className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <GlassCard className="p-6">
-                <h3 className="text-xl font-bold text-white mb-4">Content Statistics</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-300">Total Events</span>
-                    <span className="text-white font-bold">{stats.totalEvents}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-300">Music Tracks</span>
-                    <span className="text-white font-bold">{stats.totalSongs}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-300">Total Marks</span>
-                    <span className="text-white font-bold">{stats.totalMarks}</span>
-                  </div>
-                </div>
-              </GlassCard>
-
-              <GlassCard className="p-6">
-                <h3 className="text-xl font-bold text-white mb-4">Engagement Metrics</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-300">Chat Messages</span>
-                    <span className="text-white font-bold">{stats.totalChatMessages}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-300">Puzzle Success Rate</span>
-                    <span className="text-green-400 font-bold">
-                      {stats.totalAttempts > 0 ? Math.round((stats.correctAttempts / stats.totalAttempts) * 100) : 0}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-300">Active Users</span>
-                    <span className="text-blue-400 font-bold">{stats.totalUsers}</span>
-                  </div>
-                </div>
-              </GlassCard>
-            </div>
-          </div>
-        );
-
-      case 'ai-center':
-        return (
-          <div className="space-y-6">
-            {/* AI Knowledge Management */}
-            <GlassCard className="p-6">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                <Bot className="w-5 h-5 mr-2 text-purple-400" />
-                AI Knowledge Base
-              </h3>
-              
-              <div className="space-y-4 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Add Knowledge to AI Buddy
-                  </label>
-                  <textarea
-                    value={newKnowledge}
-                    onChange={(e) => setNewKnowledge(e.target.value)}
-                    className="w-full px-4 py-3 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white resize-none"
-                    rows={4}
-                    placeholder="Enter information for the AI to learn..."
-                  />
-                </div>
-                <AnimatedButton
-                  variant="primary"
-                  onClick={handleAddKnowledge}
-                  disabled={!newKnowledge.trim()}
-                >
-                  Add to Knowledge Base
-                </AnimatedButton>
-              </div>
-              
-              <div className="space-y-3">
-                <h4 className="font-medium text-white">Current Knowledge ({aiKnowledge.length} entries)</h4>
-                {!aiKnowledge || aiKnowledge.length === 0 ? (
-                  <p className="text-gray-400 text-sm">No knowledge entries yet.</p>
-                ) : (
-                  <div className="max-h-64 overflow-y-auto space-y-2">
-                    {aiKnowledge.map((knowledge) => (
-                      <div key={knowledge.id} className="p-3 bg-white/5 rounded-lg flex justify-between items-start">
-                        <div className="flex-1">
-                          <p className="text-white text-sm">{knowledge.content}</p>
-                          <p className="text-gray-400 text-xs mt-1 selectable">
-                            Added by {knowledge.addedBy} on {new Date(knowledge.addedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => handleDeleteKnowledge(knowledge.id)}
-                          className="ml-2 p-1 text-red-400 hover:text-red-300"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </GlassCard>
-            
-            {/* Quick System Controls */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <GlassCard className="p-6">
-                <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                  <Settings className="w-5 h-5 mr-2 text-blue-400" />
-                  System Management
-                </h3>
-                
-                <div className="space-y-4">
-                  <AnimatedButton
-                    variant="primary"
-                    icon={RefreshCw}
-                    onClick={handleSystemOptimization}
-                    className="w-full"
-                  >
-                    Optimize System
-                  </AnimatedButton>
-                  
-                  <AnimatedButton
-                    variant="secondary"
-                    icon={Trash2}
-                    onClick={() => handleClearLogs('system')}
-                    className="w-full"
-                  >
-                    Clear System Logs
-                  </AnimatedButton>
-                  
-                  <AnimatedButton
-                    variant="ghost"
-                    icon={AlertCircle}
-                    onClick={() => handleClearLogs('error')}
-                    className="w-full text-red-400"
-                  >
-                    Clear Error Logs
-                  </AnimatedButton>
-                </div>
-              </GlassCard>
-              
-              <GlassCard className="p-6">
-                <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                  <Activity className="w-5 h-5 mr-2 text-blue-400" />
-                  System Status
-                </h3>
-                
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300">AI Buddy Status</span>
-                    <span className="text-green-400 flex items-center">
-                      <div className={`w-2 h-2 rounded-full mr-2 ${systemStatus.aiService === 'online' ? 'bg-green-400' : 'bg-red-400'}`}></div>
-                      {systemStatus.aiService === 'online' ? 'Online' : 'Offline'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Database</span>
-                    <span className={`flex items-center ${systemStatus.database === 'connected' ? 'text-green-400' : 'text-red-400'}`}>
-                      <div className={`w-2 h-2 rounded-full mr-2 ${systemStatus.database === 'connected' ? 'bg-green-400' : 'bg-red-400'}`}></div>
-                      {systemStatus.database === 'connected' ? 'Connected' : 'Disconnected'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300">News Service</span>
-                    <span className={`flex items-center ${systemStatus.newsService === 'active' ? 'text-green-400' : 'text-red-400'}`}>
-                      <div className={`w-2 h-2 rounded-full mr-2 ${systemStatus.newsService === 'active' ? 'bg-green-400' : 'bg-red-400'}`}></div>
-                      {systemStatus.newsService === 'active' ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300">File System</span>
-                    <span className={`${systemStatus.fileSystem === 'healthy' ? 'text-green-400' : 'text-yellow-400'}`}>
-                      {systemStatus.fileSystem === 'healthy' ? 'Healthy' : 'Needs Attention'}
-                    </span>
-                  </div>
-                </div>
-              </GlassCard>
-            </div>
-            
-            {/* Error Logs */}
-            <GlassCard className="p-6">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                <AlertCircle className="w-5 h-5 mr-2 text-red-400" />
-                Recent System Logs
-              </h3>
-              
-              {systemLogs.length === 0 ? (
-                <p className="text-gray-400">No system logs available.</p>
-              ) : (
-                <div className="max-h-64 overflow-y-auto space-y-2">
-                  {systemLogs.slice(0, 10).map((log) => (
-                    <div key={log.id} className="p-3 bg-white/5 rounded-lg">
-                      <div className="flex justify-between items-start mb-1">
-                        <span className={`text-sm font-medium ${
-                          log.type === 'error' ? 'text-red-400' :
-                          log.type === 'warning' ? 'text-yellow-400' :
-                          'text-green-400'
-                        }`}>
-                          {log.type.toUpperCase()}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          {new Date(log.timestamp).toLocaleString()}
-                        </span>
-                      </div>
-                      <p className="text-white text-sm">{log.message}</p>
-                      {log.details && (
-                        <p className="text-gray-400 text-xs mt-1">{log.details}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </GlassCard>
-          </div>
-        );
-
-      case 'system-management':
-        return (
-          <div className="space-y-6">
-            {/* System Overview */}
-            <div className="grid md:grid-cols-3 gap-6">
-              <GlassCard className="p-6">
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center">
-                  <Cpu className="w-5 h-5 mr-2 text-blue-400" />
-                  System Performance
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-300">CPU Usage</span>
-                    <span className="text-green-400">23%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-300">Memory</span>
-                    <span className="text-yellow-400">67%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-300">Storage</span>
-                    <span className="text-blue-400">45%</span>
-                  </div>
-                </div>
-              </GlassCard>
-              
-              <GlassCard className="p-6">
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center">
-                  <Network className="w-5 h-5 mr-2 text-green-400" />
-                  Network Status
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-300">Uptime</span>
-                    <span className="text-green-400">99.9%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-300">Latency</span>
-                    <span className="text-green-400">12ms</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-300">Bandwidth</span>
-                    <span className="text-blue-400">1.2 GB/s</span>
-                  </div>
-                </div>
-              </GlassCard>
-              
-              <GlassCard className="p-6">
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center">
-                  <ShieldIcon className="w-5 h-5 mr-2 text-purple-400" />
-                  Security Status
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-300">Firewall</span>
-                    <span className="text-green-400">Active</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-300">SSL</span>
-                    <span className="text-green-400">Enabled</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-300">Last Scan</span>
-                    <span className="text-blue-400">2h ago</span>
-                  </div>
-                </div>
-              </GlassCard>
-            </div>
-            
-            {/* Service Management */}
-            <GlassCard className="p-6">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                <Server className="w-5 h-5 mr-2 text-blue-400" />
-                Service Management
-              </h3>
-              
-              <div className="grid md:grid-cols-2 gap-4">
-                {Object.entries(systemStatus).map(([service, status]) => {
-                  if (service === 'lastOptimization') return null;
-                  return (
-                    <div key={service} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-3 h-3 rounded-full ${status === 'online' || status === 'active' || status === 'connected' || status === 'healthy' ? 'bg-green-400' : 'bg-red-400'}`}></div>
-                        <span className="text-white capitalize">{service.replace(/([A-Z])/g, ' $1').trim()}</span>
-                      </div>
-                      <button
-                        onClick={() => handleServiceToggle(service)}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                          status === 'online' || status === 'active' || status === 'connected' || status === 'healthy'
-                            ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                            : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                        }`}
-                      >
-                        {status === 'online' || status === 'active' || status === 'connected' || status === 'healthy' ? 'Stop' : 'Start'}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </GlassCard>
-            
-            {/* Advanced Tools */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <GlassCard className="p-6">
-                <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                  <Database className="w-5 h-5 mr-2 text-green-400" />
-                  Database Management
-                </h3>
-                
-                <div className="space-y-4">
-                  <AnimatedButton
-                    variant="primary"
-                    icon={Download}
-                    onClick={handleDatabaseBackup}
-                    className="w-full"
-                  >
-                    Create Backup
-                  </AnimatedButton>
-                  
-                  <AnimatedButton
-                    variant="secondary"
-                    icon={RefreshCw}
-                    onClick={handleSystemOptimization}
-                    className="w-full"
-                  >
-                    Optimize Database
-                  </AnimatedButton>
-                  
-                  <div className="text-sm text-gray-400">
-                    <p>Last backup: {systemStatus.lastOptimization ? new Date(systemStatus.lastOptimization).toLocaleString() : 'Never'}</p>
-                    <p>Database size: ~2.3 MB</p>
-                    <p>Total records: {stats.totalUsers + stats.totalPuzzles + stats.totalEvents}</p>
-                  </div>
-                </div>
-              </GlassCard>
-              
-              <GlassCard className="p-6">
-                <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                  <ShieldIcon className="w-5 h-5 mr-2 text-purple-400" />
-                  Security Tools
-                </h3>
-                
-                <div className="space-y-4">
-                  <AnimatedButton
-                    variant="primary"
-                    icon={Shield}
-                    onClick={handleSecurityScan}
-                    className="w-full"
-                  >
-                    Run Security Scan
-                  </AnimatedButton>
-                  
-                  <AnimatedButton
-                    variant="secondary"
-                    icon={Lock}
-                    onClick={() => alert('Security settings updated!')}
-                    className="w-full"
-                  >
-                    Update Security Settings
-                  </AnimatedButton>
-                  
-                  <div className="text-sm text-gray-400">
-                    <p>Last security scan: 2 hours ago</p>
-                    <p>Threats detected: 0</p>
-                    <p>Security level: High</p>
-                  </div>
-                </div>
-              </GlassCard>
-            </div>
-            
-            {/* System Reports */}
-            <GlassCard className="p-6">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                <FileText className="w-5 h-5 mr-2 text-yellow-400" />
-                System Reports & Analytics
-              </h3>
-              
-              <div className="grid md:grid-cols-3 gap-4">
-                <AnimatedButton
-                  variant="secondary"
-                  icon={BarChart3}
-                  onClick={generateSystemReport}
-                  className="w-full"
-                >
-                  Generate System Report
-                </AnimatedButton>
-                
-                <AnimatedButton
-                  variant="secondary"
-                  icon={Users}
-                  onClick={() => alert('User analytics report generated!')}
-                  className="w-full"
-                >
-                  User Analytics
-                </AnimatedButton>
-                
-                <AnimatedButton
-                  variant="secondary"
-                  icon={TrendingUp}
-                  onClick={() => alert('Performance report generated!')}
-                  className="w-full"
-                >
-                  Performance Report
-                </AnimatedButton>
-              </div>
-            </GlassCard>
-          </div>
-        );
-
-      case 'file-manager':
-        return (
-          <div className="space-y-6">
-            <GlassCard className="p-6">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                <HardDrive className="w-5 h-5 mr-2 text-blue-400" />
-                File System Management
-              </h3>
-              
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="font-medium text-white mb-3">Storage Overview</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-300">Total Storage</span>
-                      <span className="text-white">10 GB</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-300">Used</span>
-                      <span className="text-yellow-400">4.5 GB</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-300">Available</span>
-                      <span className="text-green-400">5.5 GB</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-300">Cache</span>
-                      <span className="text-blue-400">234 MB</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div>
-                  <h4 className="font-medium text-white mb-3">Quick Actions</h4>
-                  <div className="space-y-2">
-                    <AnimatedButton
-                      variant="secondary"
-                      icon={Trash2}
-                      onClick={handleFileCleanup}
-                      className="w-full"
-                      size="sm"
-                    >
-                      Clean Temporary Files
-                    </AnimatedButton>
-                    
-                    <AnimatedButton
-                      variant="secondary"
-                      icon={RefreshCw}
-                      onClick={() => alert('Cache cleared successfully!')}
-                      className="w-full"
-                      size="sm"
-                    >
-                      Clear Cache
-                    </AnimatedButton>
-                    
-                    <AnimatedButton
-                      variant="secondary"
-                      icon={Download}
-                      onClick={() => alert('Backup created successfully!')}
-                      className="w-full"
-                      size="sm"
-                    >
-                      Create File Backup
-                    </AnimatedButton>
-                  </div>
-                </div>
-              </div>
-            </GlassCard>
-          </div>
-        );
-
-      case 'homepage':
-        return (
-          <GlassCard className="p-6">
-            <h3 className="text-xl font-bold text-white mb-4">Homepage Content</h3>
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium text-white mb-2">Hero Title</h4>
-                <p className="text-gray-300 selectable">{content.heroTitle}</p>
-              </div>
-              <div>
-                <h4 className="font-medium text-white mb-2">Description</h4>
-                <p className="text-gray-300 selectable">{content.heroDescription}</p>
-              </div>
-              <div>
-                <h4 className="font-medium text-white mb-2">Tagline</h4>
-                <p className="text-gray-300 selectable">{content.tagline}</p>
-              </div>
-              <div className="text-sm text-gray-400">
-                Last updated: {new Date(content.lastUpdated).toLocaleString()}
-              </div>
-            </div>
-          </GlassCard>
-        );
-
-      default:
-        return <div className="text-white">Select a tab to view content</div>;
-    }
-  };
+  if (!user || user.accountType !== 'admin') {
+    return (
+      <div className="min-h-screen pt-20 pb-12 flex items-center justify-center">
+        <GlassCard className="p-8 text-center">
+          <Shield className="w-16 h-16 text-red-400 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
+            Access Denied
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            You need administrator privileges to access this panel.
+          </p>
+        </GlassCard>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen pt-20 pb-12 bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-purple-900/20">
+    <div className="min-h-screen pt-20 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
+          className="text-center mb-12"
         >
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur-md border border-purple-500/30 mb-6">
-            <Crown className="w-5 h-5 text-purple-400 mr-2" />
-            <span className="text-sm font-medium text-purple-400">Commander Control Center</span>
+          <div className="inline-flex items-center px-6 py-3 rounded-2xl bg-gradient-to-r from-red-600/20 to-purple-600/20 backdrop-blur-xl border border-red-500/30 mb-8 shadow-lg shadow-red-500/10">
+            <Crown className="w-6 h-6 text-red-400 mr-3 animate-pulse" />
+            <span className="text-lg font-semibold text-red-400">Command Center</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+          <h1 className="text-5xl md:text-7xl font-bold mb-8 bg-gradient-to-r from-red-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-gradient">
             Admin Panel
           </h1>
-          <p className="text-xl text-gray-400">
-            Manage the Royal Warriors Squad platform with live updates
+          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-4xl mx-auto leading-relaxed">
+            Command and control center for the Royal Warriors Squad
           </p>
         </motion.div>
 
         {/* Navigation Tabs */}
-        <div className="flex flex-wrap gap-2 mb-8 justify-center">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center space-x-2 ${
-                activeTab === tab.id
-                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                  : 'bg-white/10 text-gray-300 hover:bg-purple-500/20 hover:text-white'
-              }`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              <tab.icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-              {tab.count > 0 && (
-                <span className="ml-1 text-xs bg-white/20 text-white rounded-full px-2 py-0.5 font-semibold">
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          ))}
+        <div className="flex justify-center mb-8">
+          <div className="flex bg-white/10 dark:bg-gray-800/50 backdrop-blur-xl rounded-2xl p-2 shadow-lg">
+            {tabItems.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex items-center space-x-2 px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
+                    activeTab === tab.id
+                      ? 'bg-gradient-to-r from-red-600 to-purple-600 text-white shadow-lg'
+                      : 'text-gray-700 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 hover:bg-white/10'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{tab.name}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Tab Content */}
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {renderTabContent()}
-        </motion.div>
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-8"
+          >
+            {/* Stats Grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <GlassCard className="p-6 text-center border-blue-500/20 hover:border-blue-400/40 transition-all duration-500">
+                <Users className="w-8 h-8 text-blue-400 mx-auto mb-3" />
+                <div className="text-3xl font-bold text-blue-400 mb-1">{stats.totalWarriors}</div>
+                <div className="text-sm text-gray-400">Active Warriors</div>
+                {stats.pendingApprovals > 0 && (
+                  <div className="text-xs text-yellow-400 mt-1">
+                    {stats.pendingApprovals} pending
+                  </div>
+                )}
+              </GlassCard>
+
+              <GlassCard className="p-6 text-center border-purple-500/20 hover:border-purple-400/40 transition-all duration-500">
+                <Brain className="w-8 h-8 text-purple-400 mx-auto mb-3" />
+                <div className="text-3xl font-bold text-purple-400 mb-1">{stats.totalPuzzleAttempts}</div>
+                <div className="text-sm text-gray-400">Puzzle Attempts</div>
+                <div className="text-xs text-green-400 mt-1">
+                  {stats.correctAttempts} correct
+                </div>
+              </GlassCard>
+
+              <GlassCard className="p-6 text-center border-green-500/20 hover:border-green-400/40 transition-all duration-500">
+                <MessageCircle className="w-8 h-8 text-green-400 mx-auto mb-3" />
+                <div className="text-3xl font-bold text-green-400 mb-1">{stats.totalMessages}</div>
+                <div className="text-sm text-gray-400">Chat Messages</div>
+              </GlassCard>
+
+              <GlassCard className="p-6 text-center border-yellow-500/20 hover:border-yellow-400/40 transition-all duration-500">
+                <Calendar className="w-8 h-8 text-yellow-400 mx-auto mb-3" />
+                <div className="text-3xl font-bold text-yellow-400 mb-1">{stats.totalEvents}</div>
+                <div className="text-sm text-gray-400">Events Created</div>
+              </GlassCard>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Pending Reviews */}
+              <GlassCard className="p-6">
+                <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+                  <AlertTriangle className="w-5 h-5 mr-2 text-yellow-500" />
+                  Pending Reviews ({stats.pendingReviews})
+                </h3>
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {pendingAttempts.slice(0, 5).map(attempt => {
+                    const warrior = accounts.find(acc => acc.id === attempt.userId);
+                    return (
+                      <div key={attempt.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                        <div>
+                          <div className="font-medium text-gray-800 dark:text-white">
+                            {warrior?.name || 'Unknown'}
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            Answer: {attempt.userAnswer}
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleReviewPuzzleAttempt(attempt.id, true)}
+                            className="p-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleReviewPuzzleAttempt(attempt.id, false)}
+                            className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </GlassCard>
+
+              {/* Pending Approvals */}
+              <GlassCard className="p-6">
+                <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+                  <UserCheck className="w-5 h-5 mr-2 text-blue-500" />
+                  Pending Approvals ({stats.pendingApprovals})
+                </h3>
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {pendingAccounts.slice(0, 5).map(account => (
+                    <div key={account.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                      <div>
+                        <div className="font-medium text-gray-800 dark:text-white">
+                          {account.name}
+                        </div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          {account.email}
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleApproveAccount(account.id)}
+                          className="p-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleRejectAccount(account.id, 'Manual rejection')}
+                          className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
+                        >
+                          <XCircle className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Warriors Tab */}
+        {activeTab === 'warriors' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {warriors.map(warrior => (
+                <WarriorCard
+                  key={warrior.id}
+                  warrior={warrior}
+                  summary={getMarkingSummary(warrior.id)}
+                  onMark={handleMarkWarrior}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Puzzle Reviews Tab */}
+        {activeTab === 'puzzles' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            <GlassCard className="p-6">
+              <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-6">
+                Puzzle Attempt Reviews
+              </h3>
+              <div className="space-y-4">
+                {pendingAttempts.map(attempt => {
+                  const warrior = accounts.find(acc => acc.id === attempt.userId);
+                  return (
+                    <div key={attempt.id} className="p-4 bg-white/5 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-800 dark:text-white mb-1">
+                            {warrior?.name || 'Unknown Warrior'}
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            Submitted: {new Date(attempt.submittedAt).toLocaleString()}
+                          </div>
+                          <div className="text-gray-800 dark:text-white">
+                            <strong>Answer:</strong> {attempt.userAnswer}
+                          </div>
+                        </div>
+                        <div className="flex space-x-3">
+                          <AnimatedButton
+                            variant="secondary"
+                            size="sm"
+                            icon={CheckCircle}
+                            onClick={() => handleReviewPuzzleAttempt(attempt.id, true)}
+                            className="bg-green-500/20 text-green-400 border-green-500/30"
+                          >
+                            Approve
+                          </AnimatedButton>
+                          <AnimatedButton
+                            variant="secondary"
+                            size="sm"
+                            icon={XCircle}
+                            onClick={() => handleReviewPuzzleAttempt(attempt.id, false)}
+                            className="bg-red-500/20 text-red-400 border-red-500/30"
+                          >
+                            Reject
+                          </AnimatedButton>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {pendingAttempts.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    No pending puzzle reviews
+                  </div>
+                )}
+              </div>
+            </GlassCard>
+          </motion.div>
+        )}
+
+        {/* Marking System Tab */}
+        {activeTab === 'marking' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            {/* Add Criteria Button */}
+            <div className="flex justify-center">
+              <AnimatedButton
+                variant="primary"
+                icon={Plus}
+                onClick={() => setIsAddingCriteria(true)}
+                className="bg-gradient-to-r from-purple-600 to-blue-600"
+              >
+                Add Marking Criteria
+              </AnimatedButton>
+            </div>
+
+            {/* Add Criteria Form */}
+            {isAddingCriteria && (
+              <GlassCard className="p-6">
+                <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4">
+                  Add New Marking Criteria
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      value={newCriteria.name}
+                      onChange={(e) => setNewCriteria({ ...newCriteria, name: e.target.value })}
+                      className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800 dark:text-white"
+                      placeholder="Criteria name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Max Score
+                    </label>
+                    <input
+                      type="number"
+                      value={newCriteria.maxScore}
+                      onChange={(e) => setNewCriteria({ ...newCriteria, maxScore: Number(e.target.value) })}
+                      className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800 dark:text-white"
+                      min="1"
+                      max="100"
+                    />
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Category
+                  </label>
+                  <select
+                    value={newCriteria.category}
+                    onChange={(e) => setNewCriteria({ ...newCriteria, category: e.target.value as any })}
+                    className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800 dark:text-white"
+                  >
+                    <option value="participation">Participation</option>
+                    <option value="creativity">Creativity</option>
+                    <option value="technical">Technical</option>
+                    <option value="leadership">Leadership</option>
+                    <option value="collaboration">Collaboration</option>
+                  </select>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    value={newCriteria.description}
+                    onChange={(e) => setNewCriteria({ ...newCriteria, description: e.target.value })}
+                    className="w-full px-4 py-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800 dark:text-white resize-none"
+                    rows={3}
+                    placeholder="Describe this marking criteria..."
+                  />
+                </div>
+                <div className="flex space-x-4">
+                  <AnimatedButton
+                    variant="primary"
+                    onClick={handleAddCriteria}
+                  >
+                    Add Criteria
+                  </AnimatedButton>
+                  <AnimatedButton
+                    variant="ghost"
+                    onClick={() => {
+                      setIsAddingCriteria(false);
+                      setNewCriteria({ name: '', description: '', maxScore: 10, category: 'participation' });
+                    }}
+                  >
+                    Cancel
+                  </AnimatedButton>
+                </div>
+              </GlassCard>
+            )}
+
+            {/* Criteria List */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {criteria.map(criteriaItem => (
+                <GlassCard key={criteriaItem.id} className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h4 className="text-lg font-bold text-gray-800 dark:text-white mb-2">
+                        {criteriaItem.name}
+                      </h4>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">
+                        {criteriaItem.description}
+                      </p>
+                      <div className="flex items-center space-x-4 text-sm">
+                        <span className="text-purple-400">
+                          Max Score: {criteriaItem.maxScore}
+                        </span>
+                        <span className="text-blue-400 capitalize">
+                          {criteriaItem.category}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => handleToggleCriteria(criteriaItem.id)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          criteriaItem.isActive
+                            ? 'bg-green-500/20 text-green-400'
+                            : 'bg-gray-500/20 text-gray-400'
+                        }`}
+                      >
+                        {criteriaItem.isActive ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCriteria(criteriaItem.id)}
+                        className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </GlassCard>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Marking Modal */}
+        {selectedWarrior && (
+          <MarkingModal
+            isOpen={isMarkingModalOpen}
+            onClose={() => {
+              setIsMarkingModalOpen(false);
+              setSelectedWarrior(null);
+            }}
+            warrior={selectedWarrior}
+            criteria={criteria.filter(c => c.isActive)}
+            onSubmitMark={handleSubmitMark}
+          />
+        )}
       </div>
     </div>
   );
