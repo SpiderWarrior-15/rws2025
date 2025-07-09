@@ -23,7 +23,7 @@ export const WarriorsPicks: React.FC = () => {
   useEffect(() => {
     const loadAlanWalkerSongs = async () => {
       try {
-        const response = await fetch('/alan-walker-songs.json');
+        const response = await fetch('/data/alan-walker-songs.json');
         if (!response.ok) throw new Error('Failed to fetch Alan Walker songs');
         const alanWalkerSongs: Song[] = await response.json();
         // Filter only new songs that aren't already in local storage
