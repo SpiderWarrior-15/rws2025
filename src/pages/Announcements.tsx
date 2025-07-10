@@ -339,207 +339,136 @@ export const Announcements: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex justify-center mb-8"
+            className="mb-8 text-center"
           >
-            <AnimatedButton
-              variant="primary"
-              icon={Plus}
-              onClick={() => setIsAddingNew(true)}
-              className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg shadow-orange-500/25"
-            >
-              Create Announcement
-            </AnimatedButton>
-          </motion.div>
-        )}
-
-        {/* Add/Edit Announcement Form */}
-        {isAdmin && (isAddingNew || editingAnnouncement) && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-8"
-          >
-            <GlassCard className="p-8 border-orange-500/30">
-              <h3 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white flex items-center">
-                <Megaphone className="w-6 h-6 mr-3 text-orange-500" />
-                {editingAnnouncement ? 'Edit Announcement' : 'Create New Announcement'}
-              </h3>
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Title
-                  </label>
-                  <input
-                    type="text"
-                    value={newAnnouncement.title}
-                    onChange={(e) => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })}
-                    className="w-full px-4 py-3 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-800 dark:text-white transition-all duration-300"
-                    placeholder="Enter announcement title"
-                  />
-                </div>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Type
-                    </label>
-                    <select
-                      value={newAnnouncement.type}
-                      onChange={(e) => setNewAnnouncement({ ...newAnnouncement, type: e.target.value as any })}
-                      className="w-full px-4 py-3 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-800 dark:text-white"
-                    >
-                      <option value="info">Information</option>
-                      <option value="warning">Warning</option>
-                      <option value="success">Success</option>
-                      <option value="urgent">Urgent</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Priority
-                    </label>
-                    <select
-                      value={newAnnouncement.priority}
-                      onChange={(e) => setNewAnnouncement({ ...newAnnouncement, priority: e.target.value as any })}
-                      className="w-full px-4 py-3 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-800 dark:text-white"
-                    >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Content
-                  </label>
-                  <textarea
-                    value={newAnnouncement.content}
-                    onChange={(e) => setNewAnnouncement({ ...newAnnouncement, content: e.target.value })}
-                    className="w-full px-4 py-3 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-800 dark:text-white resize-none transition-all duration-300"
-                    rows={6}
-                    placeholder="Write your announcement content here..."
-                  />
-                </div>
-                <div className="flex space-x-4">
-                  <AnimatedButton
-                    variant="primary"
-                    onClick={editingAnnouncement ? () => handleEditAnnouncement(editingAnnouncement) : handleAddAnnouncement}
-                    className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
+            {!isAddingNew ? (
+              <AnimatedButton
+                onClick={() => setIsAddingNew(true)}
+                className="inline-flex items-center space-x-2"
+                aria-label="Add New Announcement"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Add Announcement</span>
+              </AnimatedButton>
+            ) : (
+              <div className="max-w-xl mx-auto bg-white/10 backdrop-blur-md p-6 rounded-lg shadow-lg border border-white/20">
+                <input
+                  type="text"
+                  placeholder="Title"
+                  value={newAnnouncement.title}
+                  onChange={e => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })}
+                  className="w-full mb-3 p-3 rounded bg-white/20 text-white border border-white/30 placeholder-white/50"
+                />
+                <textarea
+                  placeholder="Content"
+                  value={newAnnouncement.content}
+                  onChange={e => setNewAnnouncement({ ...newAnnouncement, content: e.target.value })}
+                  rows={4}
+                  className="w-full mb-3 p-3 rounded bg-white/20 text-white border border-white/30 placeholder-white/50 resize-none"
+                />
+                <div className="flex space-x-3 mb-3">
+                  <select
+                    value={newAnnouncement.type}
+                    onChange={e => setNewAnnouncement({ ...newAnnouncement, type: e.target.value as Announcement['type'] })}
+                    className="flex-1 p-2 rounded bg-white/20 text-white border border-white/30"
                   >
-                    {editingAnnouncement ? 'Update Announcement' : 'Publish Announcement'}
-                  </AnimatedButton>
+                    <option value="info">Info</option>
+                    <option value="warning">Warning</option>
+                    <option value="success">Success</option>
+                    <option value="urgent">Urgent</option>
+                    <option value="achievement">Achievement</option>
+                    <option value="news">News</option>
+                    <option value="welcome">Welcome</option>
+                  </select>
+                  <select
+                    value={newAnnouncement.priority}
+                    onChange={e => setNewAnnouncement({ ...newAnnouncement, priority: e.target.value as Announcement['priority'] })}
+                    className="w-28 p-2 rounded bg-white/20 text-white border border-white/30"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+                <div className="flex justify-end space-x-3">
                   <AnimatedButton
-                    variant="ghost"
                     onClick={() => {
                       setIsAddingNew(false);
-                      setEditingAnnouncement(null);
                       setNewAnnouncement({ title: '', content: '', type: 'info', priority: 'medium' });
                     }}
+                    className="bg-red-500 hover:bg-red-600"
                   >
                     Cancel
                   </AnimatedButton>
+                  <AnimatedButton onClick={handleAddAnnouncement}>Save</AnimatedButton>
                 </div>
               </div>
-            </GlassCard>
+            )}
           </motion.div>
         )}
 
         {/* Announcements List */}
-        <div className="space-y-6">
-          {sortedAnnouncements.map((announcement, index) => {
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="space-y-6"
+        >
+          {sortedAnnouncements.length === 0 && (
+            <p className="text-center text-gray-400 dark:text-gray-600">
+              No active announcements at this time.
+            </p>
+          )}
+
+          {sortedAnnouncements.map(announcement => {
             const Icon = getAnnouncementIcon(announcement.type);
+            const colors = getAnnouncementColors(announcement.type);
+            const priorityBadge = getPriorityBadge(announcement.priority);
+
             return (
-              <motion.div
+              <GlassCard
                 key={announcement.id}
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="group"
+                className={`border ${colors} p-6 shadow-lg hover:shadow-xl transition-shadow duration-300`}
               >
-                <GlassCard className={`p-8 border-l-4 ${getAnnouncementColors(announcement.type)} hover:scale-[1.02] transition-all duration-500 shadow-lg hover:shadow-xl`}>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-6 flex-1">
-                      <div className={`p-4 rounded-2xl ${getAnnouncementColors(announcement.type)} shadow-lg`}>
-                        <Icon className="w-8 h-8" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-4 mb-3">
-                          <h3 className="text-2xl font-bold text-gray-800 dark:text-white">
-                            {announcement.title}
-                          </h3>
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getPriorityBadge(announcement.priority)}`}>
-                            {announcement.priority.toUpperCase()}
-                          </span>
-                          {announcement.autoGenerated && (
-                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                              AUTO
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed text-lg">
-                          {announcement.content}
-                        </p>
-                        <div className="flex items-center space-x-6 text-sm text-gray-500 dark:text-gray-400">
-                          <div className="flex items-center space-x-2">
-                            <User className="w-4 h-4" />
-                            <span>{announcement.author}</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Clock className="w-4 h-4" />
-                            <span>{format(new Date(announcement.createdAt), 'MMM dd, yyyy HH:mm')}</span>
-                          </div>
-                          {announcement.updatedAt && (
-                            <span className="text-xs text-gray-400">
-                              (Updated: {format(new Date(announcement.updatedAt), 'MMM dd, yyyy HH:mm')})
-                            </span>
-                          )}
-                        </div>
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center space-x-4">
+                    <Icon className="w-8 h-8 flex-shrink-0" />
+                    <div>
+                      <h3 className="text-xl font-semibold">{announcement.title}</h3>
+                      <div className={`inline-block mt-1 px-2 py-0.5 rounded text-sm font-semibold border ${priorityBadge}`}>
+                        {announcement.priority.toUpperCase()}
                       </div>
                     </div>
-                    
-                    {isAdmin && !announcement.autoGenerated && (
-                      <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <AnimatedButton
-                          variant="secondary"
-                          size="sm"
-                          icon={Edit}
-                          onClick={() => handleEditAnnouncement(announcement)}
-                        >
-                          Edit
-                        </AnimatedButton>
-                        <AnimatedButton
-                          variant="ghost"
-                          size="sm"
-                          icon={Trash2}
-                          onClick={() => handleDeleteAnnouncement(announcement.id)}
-                          className="text-red-500 hover:text-red-600"
-                        >
-                          Delete
-                        </AnimatedButton>
-                      </div>
-                    )}
                   </div>
-                </GlassCard>
-              </motion.div>
+                  {isAdmin && (
+                    <div className="flex space-x-2">
+                      <AnimatedButton
+                        onClick={() => handleEditAnnouncement(announcement)}
+                        aria-label="Edit Announcement"
+                        className="p-1 text-yellow-400 hover:text-yellow-500"
+                      >
+                        <Edit className="w-5 h-5" />
+                      </AnimatedButton>
+                      <AnimatedButton
+                        onClick={() => handleDeleteAnnouncement(announcement.id)}
+                        aria-label="Delete Announcement"
+                        className="p-1 text-red-400 hover:text-red-500"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </AnimatedButton>
+                    </div>
+                  )}
+                </div>
+                <p className="mt-4 text-lg leading-relaxed whitespace-pre-line">
+                  {announcement.content}
+                </p>
+                <div className="mt-4 text-sm text-gray-400">
+                  Posted by <span className="font-semibold">{announcement.author}</span> on{' '}
+                  {format(new Date(announcement.createdAt), 'PPP p')}
+                </div>
+              </GlassCard>
             );
           })}
-        </div>
-
-        {sortedAnnouncements.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-16"
-          >
-            <Megaphone className="w-20 h-20 text-gray-400 mx-auto mb-6" />
-            <h3 className="text-2xl font-medium text-gray-600 dark:text-gray-400 mb-3">
-              No announcements
-            </h3>
-            <p className="text-gray-500 dark:text-gray-500 text-lg">
-              {isAdmin ? 'Create your first announcement to keep warriors informed!' : 'No announcements have been posted yet.'}
-            </p>
-          </motion.div>
-        )}
+        </motion.div>
       </div>
     </div>
   );
