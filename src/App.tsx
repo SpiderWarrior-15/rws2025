@@ -20,6 +20,7 @@ import { Puzzles } from './pages/Puzzles';
 import { Events } from './pages/Events';
 import { Contact } from './pages/Contact';
 import { Chat } from './pages/Chat';
+import { Forms } from './pages/Forms';
 import { Admin } from './pages/Admin';
 import { Login } from './pages/Login';
 import { SignUp } from './pages/SignUp';
@@ -50,6 +51,7 @@ function AppContent() {
           <Route path="/events" element={<Events />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/chat" element={<Chat />} />
+          <Route path="/forms" element={<Forms />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/license" element={<License />} />
           <Route 

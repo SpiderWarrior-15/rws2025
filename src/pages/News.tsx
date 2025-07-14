@@ -31,6 +31,7 @@ export const News: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isGeneratingNews, setIsGeneratingNews] = useState(false);
   const [lastAutoUpdate, setLastAutoUpdate] = useLocalStorage<string>('rws-last-auto-update', '');
+  const [expandedArticles, setExpandedArticles] = useState<Set<string>>(new Set());
   const [newArticle, setNewArticle] = useState({
     title: '',
     content: '',
@@ -136,6 +137,38 @@ export const News: React.FC = () => {
   
   const handleLiveUpdate = async () => {
     await handleGenerateNews();
+  };
+
+  const toggleArticleExpansion = (articleId: string) => {
+    const newExpanded = new Set(expandedArticles);
+    if (newExpanded.has(articleId)) {
+      newExpanded.delete(articleId);
+    } else {
+      newExpanded.add(articleId);
+    }
+    setExpandedArticles(newExpanded);
+  };
+
+  const formatContent = (content: string) => {
+    return content
+      .split('\n')
+      .map((line, index) => {
+        const trimmedLine = line.trim();
+        if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-') || trimmedLine.startsWith('*')) {
+          return (
+            <li key={index} className="ml-4">
+              {trimmedLine.substring(1).trim()}
+            </li>
+          );
+        }
+        return trimmedLine ? (
+          <p key={index} className="mb-2">
+            {trimmedLine}
+          </p>
+        ) : (
+          <br key={index} />
+        );
+      });
   };
 
   const handleViewArticle = (article: NewsArticle) => {
@@ -413,9 +446,15 @@ export const News: React.FC = () => {
                   {article.title}
                 </h3>
 
-                <p className="text-gray-600 dark:text-gray-400 mb-4 flex-1 line-clamp-3">
-                  {article.excerpt}
-                </p>
+                <div className="text-gray-600 dark:text-gray-400 mb-4 flex-1">
+                  {expandedArticles.has(article.id) ? (
+                    <div className="prose prose-sm max-w-none">
+                      {formatContent(article.content)}
+                    </div>
+                  ) : (
+                    <p className="line-clamp-3">{article.excerpt}</p>
+                  )}
+                </div>
                 
                 {/* Tags */}
                 {article.tags && article.tags.length > 0 && (
@@ -456,10 +495,13 @@ export const News: React.FC = () => {
                   <AnimatedButton
                     variant="primary"
                     size="sm"
-                    onClick={() => handleViewArticle(article)}
+                    onClick={() => {
+                      handleViewArticle(article);
+                      toggleArticleExpansion(article.id);
+                    }}
                     className="flex-1"
                   >
-                    Read More
+                    {expandedArticles.has(article.id) ? 'Show Less' : 'Read More'}
                   </AnimatedButton>
                   
                   {isAdmin && (

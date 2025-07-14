@@ -32,6 +32,7 @@ export const Announcements: React.FC = () => {
   const [newsArticles] = useLocalStorage<NewsArticle[]>('rws-news', []);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
+  const [expandedAnnouncements, setExpandedAnnouncements] = useState<Set<string>>(new Set());
   const [newAnnouncement, setNewAnnouncement] = useState({
     title: '',
     content: '',
@@ -229,6 +230,38 @@ export const Announcements: React.FC = () => {
     const updatedAnnouncements = announcements.filter(announcement => announcement.id !== id);
     setAnnouncements(updatedAnnouncements);
     broadcastUpdate('announcement_deleted', { id });
+  };
+
+  const toggleAnnouncementExpansion = (announcementId: string) => {
+    const newExpanded = new Set(expandedAnnouncements);
+    if (newExpanded.has(announcementId)) {
+      newExpanded.delete(announcementId);
+    } else {
+      newExpanded.add(announcementId);
+    }
+    setExpandedAnnouncements(newExpanded);
+  };
+
+  const formatContent = (content: string) => {
+    return content
+      .split('\n')
+      .map((line, index) => {
+        const trimmedLine = line.trim();
+        if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-') || trimmedLine.startsWith('*')) {
+          return (
+            <li key={index} className="ml-4 mb-1">
+              {trimmedLine.substring(1).trim()}
+            </li>
+          );
+        }
+        return trimmedLine ? (
+          <p key={index} className="mb-2">
+            {trimmedLine}
+          </p>
+        ) : (
+          <br key={index} />
+        );
+      });
   };
 
   const getAnnouncementIcon = (type: string) => {
@@ -458,9 +491,33 @@ export const Announcements: React.FC = () => {
                     </div>
                   )}
                 </div>
-                <p className="mt-4 text-lg leading-relaxed whitespace-pre-line">
-                  {announcement.content}
-                </p>
+                <div className="mt-4 text-lg leading-relaxed">
+                  {expandedAnnouncements.has(announcement.id) ? (
+                    <div className="prose prose-lg max-w-none">
+                      {formatContent(announcement.content)}
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="line-clamp-3">{announcement.content}</p>
+                      {announcement.content.length > 200 && (
+                        <button
+                          onClick={() => toggleAnnouncementExpansion(announcement.id)}
+                          className="text-purple-400 hover:text-purple-300 text-sm mt-2 underline"
+                        >
+                          See More
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {expandedAnnouncements.has(announcement.id) && announcement.content.length > 200 && (
+                    <button
+                      onClick={() => toggleAnnouncementExpansion(announcement.id)}
+                      className="text-purple-400 hover:text-purple-300 text-sm mt-2 underline"
+                    >
+                      Show Less
+                    </button>
+                  )}
+                </div>
                 <div className="mt-4 text-sm text-gray-400">
                   Posted by <span className="font-semibold">{announcement.author}</span> on{' '}
                   {format(new Date(announcement.createdAt), 'PPP p')}

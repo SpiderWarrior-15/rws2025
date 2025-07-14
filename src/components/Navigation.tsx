@@ -70,6 +70,7 @@ export const Navigation: React.FC = () => {
         { name: 'Puzzles', path: '/puzzles', description: 'Brain challenges & competitions' },
         { name: 'Chat', path: '/chat', description: 'Connect with warriors' },
         { name: 'Events', path: '/events', description: 'Upcoming gatherings' },
+        { name: 'Forms', path: '/forms', description: 'Surveys & registrations' },
       ]
     },
     {
