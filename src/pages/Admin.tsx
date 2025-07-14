@@ -22,12 +22,16 @@ import {
   XCircle,
   Edit,
   Trash2,
-  Plus
+  Plus,
+  FileText,
+  Eye,
+  Download
 } from 'lucide-react';
 import { GlassCard } from '../components/GlassCard';
 import { AnimatedButton } from '../components/AnimatedButton';
 import { WarriorCard } from '../components/WarriorCard';
 import { MarkingModal } from '../components/MarkingModal';
+import { FormBuilder } from '../components/FormBuilder';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useAuth } from '../hooks/useAuth';
 import { 
@@ -39,23 +43,31 @@ import {
   MarkingSummary,
   ChatMessage,
   Event,
-  ContactMessage
+  ContactMessage,
+  CustomForm,
+  FormSubmission
 } from '../types';
 import { initialMarkingCriteria } from '../utils/initialData';
+import { format } from 'date-fns';
 
 export const Admin: React.FC = () => {
   const { user } = useAuth();
-  const [accounts, setAccounts] = useLocalStorage<UserAccount[]>('rws-accounts', []);
+  const [accounts] = useLocalStorage<UserAccount[]>('rws-accounts', []);
   const [attempts, setAttempts] = useLocalStorage<PuzzleAttempt[]>('rws-puzzle-attempts', []);
   const [criteria, setCriteria] = useLocalStorage<MarkingCriteria[]>('rws-marking-criteria', initialMarkingCriteria);
   const [marks, setMarks] = useLocalStorage<Mark[]>('rws-marks', []);
   const [messages] = useLocalStorage<ChatMessage[]>('rws-chat-messages', []);
   const [events] = useLocalStorage<Event[]>('rws-events', []);
   const [contactMessages] = useLocalStorage<ContactMessage[]>('rws-messages', []);
+  const [forms, setForms] = useLocalStorage<CustomForm[]>('rws-forms', []);
+  const [submissions] = useLocalStorage<FormSubmission[]>('rws-form-submissions', []);
   
-  const [activeTab, setActiveTab] = useState<'overview' | 'warriors' | 'puzzles' | 'marking'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'warriors' | 'puzzles' | 'marking' | 'forms'>('overview');
   const [selectedWarrior, setSelectedWarrior] = useState<WarriorMember | null>(null);
   const [isMarkingModalOpen, setIsMarkingModalOpen] = useState(false);
+  const [isFormBuilderOpen, setIsFormBuilderOpen] = useState(false);
+  const [editingForm, setEditingForm] = useState<CustomForm | null>(null);
+  const [selectedFormSubmissions, setSelectedFormSubmissions] = useState<string | null>(null);
   const [newCriteria, setNewCriteria] = useState({
     name: '',
     description: '',
@@ -63,6 +75,8 @@ export const Admin: React.FC = () => {
     category: 'participation' as const
   });
   const [isAddingCriteria, setIsAddingCriteria] = useState(false);
+
+  const isAdmin = user?.accountType === 'admin';
 
   // Calculate dashboard stats
   const stats = {
@@ -73,7 +87,10 @@ export const Admin: React.FC = () => {
     pendingReviews: attempts.filter(att => att.isCorrect === null).length,
     totalMessages: messages.length,
     totalEvents: events.length,
-    unreadMessages: contactMessages.filter(msg => !msg.isRead).length
+    unreadMessages: contactMessages.filter(msg => !msg.isRead).length,
+    totalForms: forms.length,
+    activeForms: forms.filter(f => f.isActive).length,
+    totalSubmissions: submissions.length
   };
 
   // Get warrior members with marking summaries
@@ -120,28 +137,11 @@ export const Admin: React.FC = () => {
   };
 
   const handleApproveAccount = (accountId: string) => {
-    setAccounts(accounts.map(acc => 
-      acc.id === accountId 
-        ? { 
-            ...acc, 
-            status: 'approved', 
-            approvedAt: new Date().toISOString(),
-            approvedBy: user?.username || 'admin'
-          }
-        : acc
-    ));
+    // This would be handled by the auth system
   };
 
   const handleRejectAccount = (accountId: string, reason: string) => {
-    setAccounts(accounts.map(acc => 
-      acc.id === accountId 
-        ? { 
-            ...acc, 
-            status: 'rejected',
-            rejectionReason: reason
-          }
-        : acc
-    ));
+    // This would be handled by the auth system
   };
 
   const handleReviewPuzzleAttempt = (attemptId: string, isCorrect: boolean) => {
@@ -199,6 +199,66 @@ export const Admin: React.FC = () => {
     setMarks(marks.filter(m => m.criteriaId !== criteriaId));
   };
 
+  const handleSaveForm = (formData: Omit<CustomForm, 'id' | 'createdAt' | 'createdBy'>) => {
+    if (editingForm) {
+      setForms(forms.map(f => 
+        f.id === editingForm.id 
+          ? { ...f, ...formData, updatedAt: new Date().toISOString() }
+          : f
+      ));
+    } else {
+      const newForm: CustomForm = {
+        ...formData,
+        id: Date.now().toString(),
+        createdBy: user?.username || 'admin',
+        createdAt: new Date().toISOString()
+      };
+      setForms([...forms, newForm]);
+    }
+    setIsFormBuilderOpen(false);
+    setEditingForm(null);
+  };
+
+  const handleDeleteForm = (formId: string) => {
+    setForms(forms.filter(f => f.id !== formId));
+  };
+
+  const handleToggleForm = (formId: string) => {
+    setForms(forms.map(f => 
+      f.id === formId ? { ...f, isActive: !f.isActive } : f
+    ));
+  };
+
+  const exportSubmissions = (formId: string) => {
+    const form = forms.find(f => f.id === formId);
+    const formSubmissions = submissions.filter(s => s.formId === formId);
+    
+    if (!form || formSubmissions.length === 0) return;
+
+    const csvContent = [
+      // Header
+      ['Submitted At', 'User Name', 'User Email', ...form.fields.map(f => f.label)].join(','),
+      // Data rows
+      ...formSubmissions.map(sub => [
+        format(new Date(sub.submittedAt), 'yyyy-MM-dd HH:mm:ss'),
+        sub.userName,
+        sub.userEmail,
+        ...form.fields.map(f => {
+          const value = sub.responses[f.id];
+          return Array.isArray(value) ? value.join('; ') : String(value || '');
+        })
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${form.title.replace(/[^a-zA-Z0-9]/g, '_')}_submissions.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const warriors = getWarriorMembers();
   const pendingAttempts = attempts.filter(att => att.isCorrect === null);
   const pendingAccounts = accounts.filter(acc => acc.status === 'pending');
@@ -207,10 +267,11 @@ export const Admin: React.FC = () => {
     { id: 'overview', name: 'Overview', icon: BarChart3 },
     { id: 'warriors', name: 'Warriors', icon: Users },
     { id: 'puzzles', name: 'Puzzle Reviews', icon: Brain },
-    { id: 'marking', name: 'Marking System', icon: Star }
+    { id: 'marking', name: 'Marking System', icon: Star },
+    { id: 'forms', name: 'Form Management', icon: FileText }
   ];
 
-  if (!user || user.accountType !== 'admin') {
+  if (!isAdmin) {
     return (
       <div className="min-h-screen pt-20 pb-12 flex items-center justify-center">
         <GlassCard className="p-8 text-center">
@@ -248,15 +309,15 @@ export const Admin: React.FC = () => {
         </motion.div>
 
         {/* Navigation Tabs */}
-        <div className="flex justify-center mb-8">
-          <div className="flex bg-white/10 dark:bg-gray-800/50 backdrop-blur-xl rounded-2xl p-2 shadow-lg">
+        <div className="flex justify-center mb-8 overflow-x-auto">
+          <div className="flex bg-white/10 dark:bg-gray-800/50 backdrop-blur-xl rounded-2xl p-2 shadow-lg min-w-max">
             {tabItems.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center space-x-2 px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
+                  className={`flex items-center space-x-2 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                     activeTab === tab.id
                       ? 'bg-gradient-to-r from-red-600 to-purple-600 text-white shadow-lg'
                       : 'text-gray-700 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 hover:bg-white/10'
@@ -300,9 +361,12 @@ export const Admin: React.FC = () => {
               </GlassCard>
 
               <GlassCard className="p-6 text-center border-green-500/20 hover:border-green-400/40 transition-all duration-500">
-                <MessageCircle className="w-8 h-8 text-green-400 mx-auto mb-3" />
-                <div className="text-3xl font-bold text-green-400 mb-1">{stats.totalMessages}</div>
-                <div className="text-sm text-gray-400">Chat Messages</div>
+                <FileText className="w-8 h-8 text-green-400 mx-auto mb-3" />
+                <div className="text-3xl font-bold text-green-400 mb-1">{stats.totalForms}</div>
+                <div className="text-sm text-gray-400">Total Forms</div>
+                <div className="text-xs text-blue-400 mt-1">
+                  {stats.totalSubmissions} submissions
+                </div>
               </GlassCard>
 
               <GlassCard className="p-6 text-center border-yellow-500/20 hover:border-yellow-400/40 transition-all duration-500">
@@ -353,39 +417,31 @@ export const Admin: React.FC = () => {
                 </div>
               </GlassCard>
 
-              {/* Pending Approvals */}
+              {/* Recent Form Submissions */}
               <GlassCard className="p-6">
                 <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
-                  <UserCheck className="w-5 h-5 mr-2 text-blue-500" />
-                  Pending Approvals ({stats.pendingApprovals})
+                  <FileText className="w-5 h-5 mr-2 text-green-500" />
+                  Recent Submissions ({stats.totalSubmissions})
                 </h3>
                 <div className="space-y-3 max-h-64 overflow-y-auto">
-                  {pendingAccounts.slice(0, 5).map(account => (
-                    <div key={account.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-                      <div>
-                        <div className="font-medium text-gray-800 dark:text-white">
-                          {account.name}
+                  {submissions.slice(-5).reverse().map(submission => {
+                    const form = forms.find(f => f.id === submission.formId);
+                    return (
+                      <div key={submission.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                        <div>
+                          <div className="font-medium text-gray-800 dark:text-white">
+                            {form?.title || 'Unknown Form'}
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            by {submission.userName}
+                          </div>
                         </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                          {account.email}
+                        <div className="text-xs text-gray-500">
+                          {format(new Date(submission.submittedAt), 'MMM dd, HH:mm')}
                         </div>
                       </div>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleApproveAccount(account.id)}
-                          className="p-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors"
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleRejectAccount(account.id, 'Manual rejection')}
-                          className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
-                        >
-                          <XCircle className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </GlassCard>
             </div>
@@ -618,6 +674,228 @@ export const Admin: React.FC = () => {
               ))}
             </div>
           </motion.div>
+        )}
+
+        {/* Forms Tab */}
+        {activeTab === 'forms' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            {/* Add Form Button */}
+            <div className="flex justify-center">
+              <AnimatedButton
+                variant="primary"
+                icon={Plus}
+                onClick={() => setIsFormBuilderOpen(true)}
+                className="bg-gradient-to-r from-green-600 to-blue-600"
+              >
+                Create New Form
+              </AnimatedButton>
+            </div>
+
+            {/* Forms List */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {forms.map(form => {
+                const formSubmissions = submissions.filter(s => s.formId === form.id);
+                return (
+                  <GlassCard key={form.id} className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        form.category === 'event' ? 'bg-purple-500/20 text-purple-400' :
+                        form.category === 'survey' ? 'bg-blue-500/20 text-blue-400' :
+                        form.category === 'feedback' ? 'bg-green-500/20 text-green-400' :
+                        'bg-gray-500/20 text-gray-400'
+                      }`}>
+                        {form.category.toUpperCase()}
+                      </span>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleToggleForm(form.id)}
+                          className={`p-2 rounded-lg transition-colors ${
+                            form.isActive
+                              ? 'bg-green-500/20 text-green-400'
+                              : 'bg-gray-500/20 text-gray-400'
+                          }`}
+                        >
+                          {form.isActive ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingForm(form);
+                            setIsFormBuilderOpen(true);
+                          }}
+                          className="p-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteForm(form.id)}
+                          className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-2">
+                      {form.title}
+                    </h3>
+                    
+                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                      {form.description}
+                    </p>
+
+                    <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                      <span>{form.fields.length} fields</span>
+                      <span>{formSubmissions.length} submissions</span>
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <AnimatedButton
+                        variant="secondary"
+                        size="sm"
+                        icon={Eye}
+                        onClick={() => setSelectedFormSubmissions(form.id)}
+                        className="flex-1"
+                      >
+                        View Responses
+                      </AnimatedButton>
+                      {formSubmissions.length > 0 && (
+                        <AnimatedButton
+                          variant="secondary"
+                          size="sm"
+                          icon={Download}
+                          onClick={() => exportSubmissions(form.id)}
+                        >
+                          Export
+                        </AnimatedButton>
+                      )}
+                    </div>
+                  </GlassCard>
+                );
+              })}
+            </div>
+
+            {forms.length === 0 && (
+              <div className="text-center py-12">
+                <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-medium text-gray-600 dark:text-gray-400 mb-2">
+                  No forms created yet
+                </h3>
+                <p className="text-gray-500 dark:text-gray-500">
+                  Create your first form to start collecting responses from warriors
+                </p>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* Form Builder Modal */}
+        {isFormBuilderOpen && (
+          <FormBuilder
+            isOpen={isFormBuilderOpen}
+            onClose={() => {
+              setIsFormBuilderOpen(false);
+              setEditingForm(null);
+            }}
+            onSave={handleSaveForm}
+            editingForm={editingForm}
+          />
+        )}
+
+        {/* Form Submissions Modal */}
+        {selectedFormSubmissions && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <GlassCard className="w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                    Form Submissions
+                  </h2>
+                  <button
+                    onClick={() => setSelectedFormSubmissions(null)}
+                    className="p-2 hover:bg-white/10 dark:hover:bg-gray-800/50 rounded-lg transition-colors duration-300"
+                  >
+                    <XCircle className="w-5 h-5 text-gray-500" />
+                  </button>
+                </div>
+
+                {(() => {
+                  const form = forms.find(f => f.id === selectedFormSubmissions);
+                  const formSubmissions = submissions.filter(s => s.formId === selectedFormSubmissions);
+                  
+                  if (!form) return null;
+
+                  return (
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+                          {form.title} - {formSubmissions.length} submissions
+                        </h3>
+                        {formSubmissions.length > 0 && (
+                          <AnimatedButton
+                            variant="secondary"
+                            size="sm"
+                            icon={Download}
+                            onClick={() => exportSubmissions(form.id)}
+                          >
+                            Export CSV
+                          </AnimatedButton>
+                        )}
+                      </div>
+
+                      {formSubmissions.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          No submissions yet
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="text-left p-3 text-gray-300">Submitted</th>
+                                <th className="text-left p-3 text-gray-300">User</th>
+                                {form.fields.map(field => (
+                                  <th key={field.id} className="text-left p-3 text-gray-300">
+                                    {field.label}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {formSubmissions.map(submission => (
+                                <tr key={submission.id} className="border-b border-gray-800">
+                                  <td className="p-3 text-gray-400">
+                                    {format(new Date(submission.submittedAt), 'MMM dd, yyyy HH:mm')}
+                                  </td>
+                                  <td className="p-3 text-gray-300">
+                                    {submission.userName}
+                                  </td>
+                                  {form.fields.map(field => (
+                                    <td key={field.id} className="p-3 text-gray-300">
+                                      {(() => {
+                                        const value = submission.responses[field.id];
+                                        if (Array.isArray(value)) {
+                                          return value.join(', ');
+                                        }
+                                        return String(value || '-');
+                                      })()}
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            </GlassCard>
+          </div>
         )}
 
         {/* Marking Modal */}
