@@ -17,13 +17,11 @@ export function ImageCreator() {
     setImageUrl('');
 
     try {
-      // TODO: Replace with actual AI image generation API call (e.g., Leonardo.ai)
-      // For demo, simulate delay and show a placeholder image
+      // TODO: Replace with actual AI image generation API call
       await new Promise((r) => setTimeout(r, 2000));
-      // Example placeholder image URL — replace with API response URL
       const fakeImageUrl = 'https://via.placeholder.com/512x512.png?text=' + encodeURIComponent(prompt);
       setImageUrl(fakeImageUrl);
-    } catch (e) {
+    } catch {
       setError('Failed to generate image. Please try again.');
     } finally {
       setLoading(false);
