@@ -8,6 +8,7 @@ import { AuthProvider } from './components/AuthProvider';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Navigation } from './components/Navigation';
 import { Footer } from './components/Footer';
+
 import { Home } from './pages/Home';
 import { News } from './pages/News';
 import { Announcements } from './pages/Announcements';
@@ -17,17 +18,16 @@ import { Puzzles } from './pages/Puzzles';
 import { Events } from './pages/Events';
 import { Contact } from './pages/Contact';
 import { Chat } from './pages/Chat';
-import { Forms } from './pages/Forms';
 import { Admin } from './pages/Admin';
 import { Login } from './pages/Login';
 import { SignUp } from './pages/SignUp';
 import { Profile } from './pages/Profile';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { License } from './pages/License';
+import { ArtGallery } from './pages/ArtGallery';
+import { ImageCreator } from './pages/ImageCreator';
 
 function AppContent() {
-  const { showIntro, markIntroAsSeen, hideIntro } = useAIBuddy();
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">
       <Navigation />
@@ -48,38 +48,37 @@ function AppContent() {
           <Route path="/events" element={<Events />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/chat" element={<Chat />} />
-          <Route path="/forms" element={<Forms />} />
+          <Route path="/art-gallery" element={<ArtGallery />} />
+          <Route
+            path="/image-creator"
+            element={
+              <ProtectedRoute requireAdmin>
+                <ImageCreator />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/license" element={<License />} />
-          <Route 
-            path="/profile" 
+          <Route
+            path="/profile"
             element={
               <ProtectedRoute>
                 <Profile />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/admin" 
+          <Route
+            path="/admin"
             element={
               <ProtectedRoute requireAdmin>
                 <Admin />
               </ProtectedRoute>
-            } 
+            }
           />
         </Routes>
       </motion.main>
       <Footer />
-      
-      {/* AI Buddy Components */}
-      <AIBuddy />
-      {showIntro && (
-        <AIBuddyIntro
-          onClose={hideIntro}
-          onStartChat={markIntroAsSeen}
-        />
-      )}
-      
+
       <Toaster
         position="top-right"
         toastOptions={{
