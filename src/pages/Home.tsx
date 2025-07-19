@@ -1,7 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Users, Zap, Target, Sparkles, Crown, Star, Shield, Rocket } from 'lucide-react';
+import {
+  ArrowRight,
+  Users,
+  Zap,
+  Target,
+  Sparkles,
+  Crown,
+  Star,
+  Shield,
+  Rocket,
+  Search,
+  ImageIcon,
+  PhotoIcon,
+  BookOpen,
+} from 'lucide-react';
+
 import { AnimatedButton } from '../components/AnimatedButton';
 import { GlassCard } from '../components/GlassCard';
 import { TypewriterText } from '../components/TypewriterText';
@@ -30,33 +45,42 @@ export const Home: React.FC = () => {
       icon: Users,
       title: 'Elite Community',
       description: 'Join a brotherhood of passionate warriors united by purpose',
-      color: theme === 'royal' ? 'from-purple-600 to-blue-600' : 
-            theme === 'cyber' ? 'from-cyan-500 to-green-500' : 
-            'from-gray-600 to-gray-800'
+      color:
+        theme === 'royal'
+          ? 'from-purple-600 to-blue-600'
+          : theme === 'cyber'
+          ? 'from-cyan-500 to-green-500'
+          : 'from-gray-600 to-gray-800',
     },
     {
       icon: Zap,
       title: 'Royal Power',
       description: 'Unleash your potential with cutting-edge resources and training',
-      color: theme === 'royal' ? 'from-blue-600 to-purple-600' : 
-            theme === 'cyber' ? 'from-green-500 to-cyan-500' : 
-            'from-gray-700 to-gray-900'
+      color:
+        theme === 'royal'
+          ? 'from-blue-600 to-purple-600'
+          : theme === 'cyber'
+          ? 'from-green-500 to-cyan-500'
+          : 'from-gray-700 to-gray-900',
     },
     {
       icon: Target,
       title: 'Noble Purpose',
       description: 'Find your mission and make a meaningful impact on the world',
-      color: theme === 'royal' ? 'from-purple-600 to-pink-600' : 
-            theme === 'cyber' ? 'from-cyan-500 to-blue-500' : 
-            'from-gray-600 to-black'
-    }
+      color:
+        theme === 'royal'
+          ? 'from-purple-600 to-pink-600'
+          : theme === 'cyber'
+          ? 'from-cyan-500 to-blue-500'
+          : 'from-gray-600 to-black',
+    },
   ];
 
   const stats = [
     { value: totalWarriors.toString(), label: 'Elite Warriors', icon: Shield },
     { value: '50+', label: 'Royal Missions', icon: Star },
     { value: '25+', label: 'Legendary Projects', icon: Rocket },
-    { value: '∞', label: 'Royal Passion', icon: Crown }
+    { value: '∞', label: 'Royal Passion', icon: Crown },
   ];
 
   return (
@@ -64,12 +88,19 @@ export const Home: React.FC = () => {
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* Animated Background */}
-        <div className={`absolute inset-0 ${
-          theme === 'royal' ? 'bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900' :
-          theme === 'cyber' ? 'bg-gradient-to-br from-black via-cyan-900 to-green-900' :
-          'bg-gradient-to-br from-black via-gray-900 to-gray-800'
-        }`}>
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22none%22 fill-rule=%22evenodd%22%3E%3Cg fill=%22%23FFD700%22 fill-opacity=%220.1%22%3E%3Ccircle cx=%2230%22 cy=%2230%22 r=%221%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
+        <div
+          className={`absolute inset-0 ${
+            theme === 'royal'
+              ? 'bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900'
+              : theme === 'cyber'
+              ? 'bg-gradient-to-br from-black via-cyan-900 to-green-900'
+              : 'bg-gradient-to-br from-black via-gray-900 to-gray-800'
+          }`}
+        >
+          <div
+            className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22none%22 fill-rule=%22evenodd%22%3E%3Cg fill=%22%23FFD700%22 fill-opacity=%220.1%22%3E%3Ccircle cx=%2230%22 cy=%2230%22 r=%221%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"
+            aria-hidden="true"
+          ></div>
         </div>
 
         {/* Floating Elements */}
@@ -78,9 +109,7 @@ export const Home: React.FC = () => {
             <motion.div
               key={i}
               className={`absolute w-72 h-72 rounded-full blur-3xl ${
-                theme === 'royal' ? 'bg-purple-500/20' :
-                theme === 'cyber' ? 'bg-cyan-500/20' :
-                'bg-gray-500/20'
+                theme === 'royal' ? 'bg-purple-500/20' : theme === 'cyber' ? 'bg-cyan-500/20' : 'bg-gray-500/20'
               }`}
               animate={{
                 x: [0, 100, 0],
@@ -90,13 +119,14 @@ export const Home: React.FC = () => {
               transition={{
                 duration: 10 + i * 2,
                 repeat: Infinity,
-                ease: "easeInOut",
-                delay: i * 2
+                ease: 'easeInOut',
+                delay: i * 2,
               }}
               style={{
                 left: `${20 + i * 15}%`,
                 top: `${10 + i * 10}%`,
               }}
+              aria-hidden="true"
             />
           ))}
         </div>
@@ -120,28 +150,24 @@ export const Home: React.FC = () => {
             transition={{ duration: 1, delay: 0.5 }}
             className="mb-8 flex justify-center relative"
           >
-            <motion.div 
+            <motion.div
               className="w-32 h-32 md:w-40 md:h-40 rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-yellow-400/30 to-yellow-600/30 backdrop-blur-lg border-2 border-yellow-500/40 relative"
-              animate={{ 
+              animate={{
                 rotate: [0, 5, -5, 0],
                 scale: [1, 1.05, 1],
                 boxShadow: [
-                  "0 20px 40px rgba(234, 179, 8, 0.3)",
-                  "0 25px 50px rgba(234, 179, 8, 0.5)",
-                  "0 20px 40px rgba(234, 179, 8, 0.3)"
-                ]
+                  '0 20px 40px rgba(234, 179, 8, 0.3)',
+                  '0 25px 50px rgba(234, 179, 8, 0.5)',
+                  '0 20px 40px rgba(234, 179, 8, 0.3)',
+                ],
               }}
-              transition={{ 
-                duration: 4, 
+              transition={{
+                duration: 4,
                 repeat: Infinity,
-                ease: "easeInOut"
+                ease: 'easeInOut',
               }}
             >
-              <img 
-                src="/image.png" 
-                alt="Royal Warriors Squad" 
-                className="w-full h-full object-contain filter drop-shadow-2xl rounded-3xl"
-              />
+              <img src="/image.png" alt="Royal Warriors Squad" className="w-full h-full object-contain filter drop-shadow-2xl rounded-3xl" />
               <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/20 via-transparent to-yellow-600/20 rounded-3xl"></div>
               <div className="absolute inset-0 rounded-3xl ring-1 ring-inset ring-yellow-500/20"></div>
               <div className="absolute -inset-1 bg-gradient-to-r from-yellow-600 to-yellow-400 rounded-3xl blur opacity-20 animate-pulse"></div>
@@ -158,9 +184,7 @@ export const Home: React.FC = () => {
               ROYAL WARRIORS
             </span>
             <br />
-            <span className="bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-700 bg-clip-text text-transparent">
-              SQUAD
-            </span>
+            <span className="bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-700 bg-clip-text text-transparent">SQUAD</span>
           </motion.h1>
 
           <motion.div
@@ -170,7 +194,7 @@ export const Home: React.FC = () => {
             className="text-xl md:text-2xl text-gray-300 mb-12 max-w-4xl mx-auto leading-relaxed"
           >
             {showTypewriter ? (
-              <TypewriterText 
+              <TypewriterText
                 text="Unleashing Passion, Power & Purpose in an elite brotherhood where creativity meets technology and legends are born"
                 speed={30}
               />
@@ -179,6 +203,7 @@ export const Home: React.FC = () => {
             )}
           </motion.div>
 
+          {/* Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
@@ -191,21 +216,44 @@ export const Home: React.FC = () => {
               icon={ArrowRight}
               onClick={() => navigate('/signup')}
               className={`bg-gradient-to-r ${
-                theme === 'royal' ? 'from-yellow-600 to-yellow-500 hover:from-yellow-700 hover:to-yellow-600' :
-                theme === 'cyber' ? 'from-cyan-500 to-green-500 hover:from-cyan-600 hover:to-green-600' :
-                'from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900'
+                theme === 'royal'
+                  ? 'from-yellow-600 to-yellow-500 hover:from-yellow-700 hover:to-yellow-600'
+                  : theme === 'cyber'
+                  ? 'from-cyan-500 to-green-500 hover:from-cyan-600 hover:to-green-600'
+                  : 'from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900'
               } text-black font-bold shadow-2xl`}
             >
               Join the Squad
             </AnimatedButton>
-            
+
             <AnimatedButton
               variant="secondary"
               size="lg"
               onClick={() => navigate('/events')}
               className={`border-yellow-500/50 text-yellow-300 hover:bg-yellow-500/20`}
+              icon={Sparkles}
             >
               Explore Missions
+            </AnimatedButton>
+
+            <AnimatedButton
+              variant="secondary"
+              size="lg"
+              onClick={() => navigate('/art-gallery')}
+              className={`border-yellow-500/50 text-yellow-300 hover:bg-yellow-500/20 flex items-center gap-2`}
+              icon={ImageIcon}
+            >
+              Art Gallery
+            </AnimatedButton>
+
+            <AnimatedButton
+              variant="secondary"
+              size="lg"
+              onClick={() => navigate('/search')}
+              className={`border-yellow-500/50 text-yellow-300 hover:bg-yellow-500/20 flex items-center gap-2`}
+              icon={Search}
+            >
+              Search
             </AnimatedButton>
           </motion.div>
 
@@ -222,14 +270,14 @@ export const Home: React.FC = () => {
                 <GlassCard key={index} className="p-8 text-center border-yellow-500/20">
                   <motion.div
                     className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br ${feature.color} rounded-2xl mb-6 shadow-2xl`}
-                    animate={{ 
+                    animate={{
                       y: [0, -10, 0],
-                      rotate: [0, 5, -5, 0]
+                      rotate: [0, 5, -5, 0],
                     }}
-                    transition={{ 
-                      duration: 3, 
+                    transition={{
+                      duration: 3,
                       repeat: Infinity,
-                      delay: index * 0.5
+                      delay: index * 0.5,
                     }}
                   >
                     <Icon className="w-10 h-10 text-white" />
@@ -247,17 +295,16 @@ export const Home: React.FC = () => {
           className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
           animate={{ y: [0, 10, 0] }}
           transition={{ duration: 2, repeat: Infinity }}
+          aria-hidden="true"
         >
-          <div className={`w-6 h-10 border-2 ${
-            theme === 'royal' ? 'border-purple-400/50' :
-            theme === 'cyber' ? 'border-cyan-400/50' :
-            'border-gray-400/50'
-          } rounded-full flex justify-center`}>
+          <div
+            className={`w-6 h-10 border-2 ${
+              theme === 'royal' ? 'border-purple-400/50' : theme === 'cyber' ? 'border-cyan-400/50' : 'border-gray-400/50'
+            } rounded-full flex justify-center`}
+          >
             <motion.div
               className={`w-1 h-3 ${
-                theme === 'royal' ? 'bg-purple-400/70' :
-                theme === 'cyber' ? 'bg-cyan-400/70' :
-                'bg-gray-400/70'
+                theme === 'royal' ? 'bg-purple-400/70' : theme === 'cyber' ? 'bg-cyan-400/70' : 'bg-gray-400/70'
               } rounded-full mt-2`}
               animate={{ opacity: [1, 0.3, 1] }}
               transition={{ duration: 1.5, repeat: Infinity }}
@@ -279,8 +326,8 @@ export const Home: React.FC = () => {
               The Royal Legacy
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-400 max-w-4xl mx-auto leading-relaxed">
-              Royal Warriors Squad is more than just a community – we're an elite brotherhood of creative minds, 
-              tech innovators, and passionate individuals united by our shared vision of conquering the digital realm.
+              Royal Warriors Squad is more than just a community – we're an elite brotherhood of creative minds, tech innovators,
+              and passionate individuals united by our shared vision of conquering the digital realm.
             </p>
           </motion.div>
 
@@ -296,11 +343,11 @@ export const Home: React.FC = () => {
                   whileHover={{ scale: 1.05 }}
                 >
                   <GlassCard className="text-center p-6 border-yellow-500/20">
-                    <Icon className={`w-8 h-8 mx-auto mb-4 ${
-                      theme === 'royal' ? 'text-purple-500' :
-                      theme === 'cyber' ? 'text-cyan-400' :
-                      'text-gray-400'
-                    }`} />
+                    <Icon
+                      className={`w-8 h-8 mx-auto mb-4 ${
+                        theme === 'royal' ? 'text-purple-500' : theme === 'cyber' ? 'text-cyan-400' : 'text-gray-400'
+                      }`}
+                    />
                     <div className="text-3xl font-bold text-yellow-600 mb-2">{stat.value}</div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">{stat.label}</div>
                   </GlassCard>
