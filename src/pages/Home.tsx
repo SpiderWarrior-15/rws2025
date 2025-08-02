@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Users, Zap, Target, Sparkles, Crown, Star, Shield, Rocket, Search, ImageIcon, PhoneIcon as PhotoIcon, BookOpen } from 'lucide-react';
+import { ArrowRight, Users, Zap, Target, Sparkles, Crown, Star, Shield, Rocket, Search, ImageIcon, PhoneIcon as PhotoIcon, BookOpen,
+  Music, User } from 'lucide-react';
 
 import { AnimatedButton } from '../components/AnimatedButton';
 import { GlassCard } from '../components/GlassCard';
