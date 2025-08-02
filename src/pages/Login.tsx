@@ -1,3 +1,4 @@
+// ✅ Default export — don't use { Login } when importing
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -13,7 +14,7 @@ import {
   BarChart3
 } from 'lucide-react';
 
-export default function Login() {
+const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [users, setUsers] = useState<any[]>([]);
@@ -25,98 +26,79 @@ export default function Login() {
 
   useEffect(() => {
     fetch('/users.json')
-      .then((res) => res.json())
-      .then((data) => {
+      .then(res => res.json())
+      .then(data => {
         setUsers(data);
         setLoading(false);
       })
       .catch(() => {
-        setError('⚠️ Failed to load user data');
+        setError('Failed to load users');
         setLoading(false);
       });
   }, []);
 
   const handleLogin = () => {
-    const user = users.find(
-      (u) => u.email === email && u.password === password
-    );
-
+    const user = users.find(u => u.email === email && u.password === password);
     if (user) {
-      navigate('/dashboard');
+      navigate('/dashboard'); // or wherever you want to go
     } else {
-      setError('❌ Invalid email or password');
+      setError('Invalid credentials');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1 }}
-        >
-          <Shield size={40} />
-        </motion.div>
-        <span className="ml-2">Loading users...</span>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-950 text-white p-6">
-      <motion.div
-        initial={{ y: -50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 120 }}
-        className="bg-gray-900 p-8 rounded-2xl shadow-lg w-full max-w-md"
-      >
-        <h2 className="text-3xl font-bold mb-6 text-center flex items-center justify-center gap-2">
-          <LogIn /> Login to RWS
-        </h2>
+    <motion.div
+      className="min-h-screen flex flex-col items-center justify-center bg-black text-white p-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+    >
+      <h1 className="text-3xl font-bold mb-4 flex items-center gap-2">
+        <Shield size={32} /> Warrior Login
+      </h1>
 
-        {error && (
-          <div className="text-red-400 mb-4 text-center font-semibold">
-            {error}
-          </div>
-        )}
+      {error && <p className="text-red-500 mb-2">{error}</p>}
 
-        <div className="mb-4">
-          <label className="block mb-1 text-sm font-medium">Email</label>
+      <div className="w-full max-w-md bg-white/10 p-6 rounded-2xl shadow-xl space-y-4">
+        <div>
+          <label className="block mb-1">Email</label>
           <input
             type="email"
-            className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-blue-500"
-            placeholder="Enter your email"
+            className="w-full p-2 rounded bg-black border border-white"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={e => setEmail(e.target.value)}
           />
         </div>
 
-        <div className="mb-4 relative">
-          <label className="block mb-1 text-sm font-medium">Password</label>
-          <input
-            type={showPassword ? 'text' : 'password'}
-            className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-blue-500"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-9 text-gray-400 hover:text-white"
-          >
-            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-          </button>
+        <div>
+          <label className="block mb-1">Password</label>
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              className="w-full p-2 rounded bg-black border border-white"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-2 top-2"
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
         </div>
 
-        <motion.button
-          whileTap={{ scale: 0.95 }}
+        <button
           onClick={handleLogin}
-          className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl font-semibold transition"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
         >
-          <LogIn size={18} /> Sign In
-        </motion.button>
-      </motion.div>
-    </div>
+          <LogIn className="inline mr-2" /> Log In
+        </button>
+      </div>
+
+      {loading && <p className="mt-4 text-gray-400">Loading users...</p>}
+    </motion.div>
   );
-}
+};
+
+export default Login; // ✅ DEFAULT EXPORT ONLY
