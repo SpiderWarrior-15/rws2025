@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1,
+    "email": "admin@rws.com",
+    "password": "rws123",
+    "role": "admin",
+    "approved": true
+  },
+  {
+    "id": 2,
+    "email": "warrior@rws.com",
+    "password": "warriorpass",
+    "role": "user",
+    "approved": true
+  }
+]
