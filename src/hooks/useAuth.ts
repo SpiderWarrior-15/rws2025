@@ -41,9 +41,9 @@ export const useAuthProvider = () => {
         if (allUsers.length === 0) {
           const adminUser: User = {
             id: uuidv4(),
-            username: 'admin',
-            email: 'admin@alanwarriors.com',
-            password: 'admin123',
+            username: 'Spider Warrior',
+            email: 'spiderwarrior15@gmail.com',
+            password: '2012_09_17',
             role: 'admin',
             joinedAt: new Date().toISOString(),
             lastActive: new Date().toISOString(),
