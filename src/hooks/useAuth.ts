@@ -1,343 +1,218 @@
 import { useState, useEffect, createContext, useContext } from 'react';
-import { useLocalStorage } from './useLocalStorage';
-import { AuthUser, UserAccount, LoginCredentials, SignUpData } from '../types';
+import { User } from '../types';
+import { fileService } from '../services/fileService';
+import { socketService } from '../services/socketService';
+import { v4 as uuidv4 } from 'uuid';
 
 interface AuthContextType {
-  user: AuthUser | null;
-  login: (credentials: LoginCredentials, rememberMe?: boolean) => Promise<boolean>;
+  user: User | null;
+  users: User[];
+  login: (usernameOrEmail: string, password: string) => Promise<boolean>;
+  register: (username: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
-  signUp: (data: SignUpData) => Promise<boolean>;
+  updateUser: (id: string, updates: Partial<User>) => Promise<void>;
+  promoteUser: (id: string, role: 'commander' | 'warrior') => Promise<void>;
+  banUser: (id: string) => Promise<void>;
   isLoading: boolean;
-  accounts: UserAccount[];
-  updateAccount: (id: string, updates: Partial<UserAccount>) => void;
-  deleteAccount: (id: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
 
-// Initial admin account with correct password
-const initialAdminAccount: UserAccount = {
-  id: '1',
-  name: 'Spider Warrior',
-  email: 'spiderwarrior15@gmail.com',
-  whatsapp: '+1234567890',
-  dateOfBirth: '2012-09-17',
-  gender: 'other',
-  city: 'Tech City',
-  country: 'Digital World',
-  interests: ['Technology', 'Gaming', 'Music', 'Programming', 'Design'],
-  accountType: 'admin',
-  role: 'Commander',
-  status: 'approved',
-  createdAt: new Date().toISOString(),
-  approvedAt: new Date().toISOString(),
-  approvedBy: 'system',
-  provider: 'email',
-  avatar: '/image.png',
-  customPassword: '2012_09_17'
-};
-
 export const useAuthProvider = () => {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [accounts, setAccounts] = useLocalStorage<UserAccount[]>('rws-accounts', [initialAdminAccount]);
 
-  // Initialize accounts if empty or missing admin
+  // Initialize with default admin user
   useEffect(() => {
-    const adminExists = accounts.find(acc => acc.email === 'spiderwarrior15@gmail.com');
-    if (!adminExists) {
-      setAccounts([initialAdminAccount, ...accounts]);
-    } else {
-      // Update existing admin account to ensure it has all required fields
-      setAccounts(accounts.map(acc => 
-        acc.email === 'spiderwarrior15@gmail.com' 
-          ? { 
-              ...initialAdminAccount, // Use the complete initial admin account
-              ...acc, // Keep any existing data
-              customPassword: '2012_09_17', // Ensure password is correct
-              status: 'approved',
-              accountType: 'admin',
-              role: 'Commander'
-            }
-          : acc.role ? acc : { ...acc, role: 'Warrior' } // Ensure all accounts have a role
-      ));
-    }
-  }, []);
-
-  // Load user from localStorage on mount
-  useEffect(() => {
-    const loadUser = () => {
+    const initializeAuth = async () => {
       try {
-        // Check for remembered user first
-        const rememberedUser = localStorage.getItem('rws-remembered-user');
-        const sessionUser = sessionStorage.getItem('rws-current-user');
-        const savedUser = rememberedUser || sessionUser;
+        let allUsers = await fileService.getUsers();
         
-        if (savedUser) {
-          const parsedUser = JSON.parse(savedUser);
-          
-          // Verify the user still exists and is approved
-          const accountExists = accounts.find(acc => 
-            acc.id === parsedUser.id && 
-            acc.status === 'approved'
-          );
-          
-          if (accountExists) {
-            // Update user object with latest account data
-            const updatedUser: AuthUser = {
-              id: accountExists.id,
-              name: accountExists.name,
-              email: accountExists.email,
-              accountType: accountExists.accountType || 'user',
-              role: accountExists.role || 'Warrior',
-              avatar: accountExists.avatar,
-              username: accountExists.name,
-              googleLinked: accountExists.googleLinked || false
-            };
-            setUser(updatedUser);
-            
-            // Update both storages to keep them in sync
-            if (rememberedUser) {
-              localStorage.setItem('rws-remembered-user', JSON.stringify(updatedUser));
+        // Create default admin if no users exist
+        if (allUsers.length === 0) {
+          const adminUser: User = {
+            id: uuidv4(),
+            username: 'admin',
+            email: 'admin@alanwarriors.com',
+            password: 'admin123',
+            role: 'admin',
+            joinedAt: new Date().toISOString(),
+            lastActive: new Date().toISOString(),
+            isOnline: true,
+            isBanned: false,
+            stats: {
+              messagesCount: 0,
+              formsSubmitted: 0,
+              eventsAttended: 0,
+              songsUploaded: 0,
+              puzzlesSolved: 0
             }
-            sessionStorage.setItem('rws-current-user', JSON.stringify(updatedUser));
-          } else {
-            // Remove invalid user
-            localStorage.removeItem('rws-remembered-user');
-            sessionStorage.removeItem('rws-current-user');
-            setUser(null);
+          };
+          
+          await fileService.saveUser(adminUser);
+          allUsers = [adminUser];
+        }
+        
+        setUsers(allUsers);
+        
+        // Check for saved session
+        const savedUserId = localStorage.getItem('rws-current-user-id');
+        if (savedUserId) {
+          const savedUser = allUsers.find(u => u.id === savedUserId && !u.isBanned);
+          if (savedUser) {
+            setUser(savedUser);
+            await fileService.updateUser(savedUser.id, { 
+              isOnline: true, 
+              lastActive: new Date().toISOString() 
+            });
           }
         }
       } catch (error) {
-        console.error('Error loading user from storage:', error);
-        localStorage.removeItem('rws-remembered-user');
-        sessionStorage.removeItem('rws-current-user');
-        setUser(null);
+        console.error('Auth initialization error:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (accounts.length > 0) {
-      loadUser();
-    }
-  }, [accounts]);
+    initializeAuth();
+  }, []);
 
-  const login = async (credentials: LoginCredentials, rememberMe: boolean = false): Promise<boolean> => {
-    setIsLoading(true);
-    
+  const login = async (usernameOrEmail: string, password: string): Promise<boolean> => {
     try {
-      // Normalize email for comparison
-      const normalizedEmail = credentials.email.toLowerCase().trim();
-      
-      // Find account by email
-      const account = accounts.find(acc => 
-        acc.email.toLowerCase() === normalizedEmail && 
-        acc.status === 'approved'
+      const allUsers = await fileService.getUsers();
+      const foundUser = allUsers.find(u => 
+        (u.username.toLowerCase() === usernameOrEmail.toLowerCase() || 
+         u.email.toLowerCase() === usernameOrEmail.toLowerCase()) &&
+        u.password === password &&
+        !u.isBanned
       );
 
-      if (!account) {
-        console.log('Account not found or not approved:', normalizedEmail);
-        setIsLoading(false);
-        return false;
-      }
-
-      // Check password - simplified logic
-      let isPasswordValid = false;
-      
-      if (account.email.toLowerCase() === 'spiderwarrior15@gmail.com') {
-        // Admin account - check against the fixed password
-        isPasswordValid = credentials.password === '2012_09_17';
-        console.log('Admin login attempt:', { 
-          provided: credentials.password, 
-          expected: '2012_09_17', 
-          valid: isPasswordValid 
+      if (foundUser) {
+        const updatedUser = {
+          ...foundUser,
+          isOnline: true,
+          lastActive: new Date().toISOString()
+        };
+        
+        await fileService.updateUser(foundUser.id, { 
+          isOnline: true, 
+          lastActive: new Date().toISOString() 
         });
-      } else if (account.customPassword) {
-        // User with custom password
-        isPasswordValid = credentials.password === account.customPassword;
-      } else {
-        // For demo purposes, accept any non-empty password for other accounts
-        isPasswordValid = credentials.password.trim().length > 0;
+        
+        setUser(updatedUser);
+        localStorage.setItem('rws-current-user-id', foundUser.id);
+        
+        // Emit user online event
+        socketService.emit('user_online', { userId: foundUser.id });
+        
+        return true;
       }
-
-      if (!isPasswordValid) {
-        console.log('Invalid password for account:', normalizedEmail);
-        setIsLoading(false);
-        return false;
-      }
-
-      // Create auth user object
-      const authUser: AuthUser = {
-        id: account.id,
-        name: account.name,
-        email: account.email,
-        accountType: account.accountType || 'user',
-        role: account.role || 'Warrior',
-        avatar: account.avatar,
-        username: account.name,
-        googleLinked: account.googleLinked || false
-      };
-      
-      // Set user and save to appropriate storage
-      setUser(authUser);
-      
-      if (rememberMe) {
-        // Save to localStorage for persistent login
-        localStorage.setItem('rws-remembered-user', JSON.stringify(authUser));
-        // Also save to sessionStorage for consistency
-        sessionStorage.setItem('rws-current-user', JSON.stringify(authUser));
-      } else {
-        // Save only to sessionStorage for session-only login
-        sessionStorage.setItem('rws-current-user', JSON.stringify(authUser));
-        // Remove any existing remembered user
-        localStorage.removeItem('rws-remembered-user');
-      }
-      
-      console.log('Login successful for:', account.email, rememberMe ? '(remembered)' : '(session only)');
-      setIsLoading(false);
-      return true;
-
+      return false;
     } catch (error) {
       console.error('Login error:', error);
-      setIsLoading(false);
       return false;
     }
   };
 
-  const signUp = async (data: SignUpData): Promise<boolean> => {
-    setIsLoading(true);
-
+  const register = async (username: string, email: string, password: string): Promise<boolean> => {
     try {
-      // Check if email already exists
-      const existingAccount = accounts.find(acc => 
-        acc.email.toLowerCase() === data.email.toLowerCase().trim()
+      const allUsers = await fileService.getUsers();
+      
+      // Check if username or email already exists
+      const existingUser = allUsers.find(u => 
+        u.username.toLowerCase() === username.toLowerCase() || 
+        u.email.toLowerCase() === email.toLowerCase()
       );
       
-      if (existingAccount) {
-        console.log('Email already exists:', data.email);
-        setIsLoading(false);
+      if (existingUser) {
         return false;
       }
 
-      // Create new account - ALL users are Warriors by default
-      const newAccount: UserAccount = {
-        id: Date.now().toString(),
-        name: data.name.trim(),
-        email: data.email.toLowerCase().trim(),
-        whatsapp: data.whatsapp.trim(),
-        dateOfBirth: data.dateOfBirth,
-        gender: data.gender,
-        city: data.city.trim(),
-        country: data.country.trim(),
-        interests: data.interests,
-        accountType: 'user', // Always user, never admin
-        role: 'Warrior', // Always Warrior by default
-        status: 'approved', // Auto-approve all new users
-        createdAt: new Date().toISOString(),
-        approvedAt: new Date().toISOString(),
-        approvedBy: 'auto-approval',
-        provider: 'email',
-        customPassword: data.password // Store the password for this user
+      const newUser: User = {
+        id: uuidv4(),
+        username: username.trim(),
+        email: email.toLowerCase().trim(),
+        password: password,
+        role: 'warrior',
+        joinedAt: new Date().toISOString(),
+        lastActive: new Date().toISOString(),
+        isOnline: true,
+        isBanned: false,
+        stats: {
+          messagesCount: 0,
+          formsSubmitted: 0,
+          eventsAttended: 0,
+          songsUploaded: 0,
+          puzzlesSolved: 0
+        }
       };
 
-      // Add to accounts
-      setAccounts([...accounts, newAccount]);
-
-      // Automatically log in the new user
-      const authUser: AuthUser = {
-        id: newAccount.id,
-        name: newAccount.name,
-        email: newAccount.email,
-        accountType: newAccount.accountType,
-        role: newAccount.role,
-        avatar: newAccount.avatar,
-        username: newAccount.name,
-        googleLinked: newAccount.googleLinked || false
-      };
-
-      // Set user and save to sessionStorage (not remembered by default)
-      setUser(authUser);
-      sessionStorage.setItem('rws-current-user', JSON.stringify(authUser));
+      await fileService.saveUser(newUser);
+      setUser(newUser);
+      setUsers([...allUsers, newUser]);
+      localStorage.setItem('rws-current-user-id', newUser.id);
       
-      console.log('Account created and user logged in successfully:', newAccount.email);
-      setIsLoading(false);
+      // Emit user joined event
+      socketService.emit('user_joined', newUser);
+      
       return true;
-
     } catch (error) {
-      console.error('Sign up error:', error);
-      setIsLoading(false);
+      console.error('Registration error:', error);
       return false;
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    if (user) {
+      await fileService.updateUser(user.id, { 
+        isOnline: false, 
+        lastActive: new Date().toISOString() 
+      });
+      
+      socketService.emit('user_offline', { userId: user.id });
+    }
+    
     setUser(null);
-    localStorage.removeItem('rws-remembered-user');
-    sessionStorage.removeItem('rws-current-user');
-    console.log('User logged out');
+    localStorage.removeItem('rws-current-user-id');
   };
 
-  const updateAccount = (id: string, updates: Partial<UserAccount>) => {
-    setAccounts(accounts.map(acc => 
-      acc.id === id ? { ...acc, ...updates } : acc
-    ));
+  const updateUser = async (id: string, updates: Partial<User>) => {
+    await fileService.updateUser(id, updates);
+    const updatedUsers = await fileService.getUsers();
+    setUsers(updatedUsers);
     
-    // Update current user if it's the same account
     if (user && user.id === id) {
-      const updatedAccount = accounts.find(acc => acc.id === id);
-      if (updatedAccount) {
-        const updatedUser: AuthUser = {
-          ...user,
-          name: updates.name || user.name,
-          email: updates.email || user.email,
-          accountType: updates.accountType || user.accountType,
-          role: updates.role || user.role,
-          avatar: updates.avatar || user.avatar,
-          username: updates.name || user.username,
-          googleLinked: updates.googleLinked || user.googleLinked
-        };
-        setUser(updatedUser);
-        
-        // Update both storages if they exist
-        const rememberedUser = localStorage.getItem('rws-remembered-user');
-        if (rememberedUser) {
-          localStorage.setItem('rws-remembered-user', JSON.stringify(updatedUser));
-        }
-        sessionStorage.setItem('rws-current-user', JSON.stringify(updatedUser));
-      }
+      setUser({ ...user, ...updates });
     }
   };
 
-  const deleteAccount = (id: string) => {
-    // Don't allow deleting the admin account
-    if (id === '1') return;
-    
-    setAccounts(accounts.filter(acc => acc.id !== id));
-    
-    // If the deleted account is the current user, log them out
-    if (user && user.id === id) {
-      logout();
-    }
+  const promoteUser = async (id: string, role: 'commander' | 'warrior') => {
+    await updateUser(id, { role });
+  };
+
+  const banUser = async (id: string) => {
+    await updateUser(id, { isBanned: true, isOnline: false });
   };
 
   return {
     user,
+    users,
     login,
+    register,
     logout,
-    signUp,
-    isLoading,
-    accounts,
-    updateAccount,
-    deleteAccount
+    updateUser,
+    promoteUser,
+    banUser,
+    isLoading
   };
 };
 

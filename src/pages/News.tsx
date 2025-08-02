@@ -448,7 +448,7 @@ export const News: React.FC = () => {
 
                 <div className="text-gray-600 dark:text-gray-400 mb-4 flex-1">
                   {expandedArticles.has(article.id) ? (
-                    <div className="prose prose-sm max-w-none">
+                    <div className="prose prose-sm max-w-none text-gray-600 dark:text-gray-400">
                       {formatContent(article.content)}
                     </div>
                   ) : (

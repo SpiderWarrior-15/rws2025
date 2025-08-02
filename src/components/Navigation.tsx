@@ -68,9 +68,10 @@ export const Navigation: React.FC = () => {
       name: 'Community',
       dropdown: [
         { name: 'Puzzles', path: '/puzzles', description: 'Brain challenges & competitions' },
-        { name: 'Chat', path: '/chat', description: 'Connect with warriors' },
+        { name: 'Chat Hub', path: '/chat', description: 'Real-time warrior communications' },
         { name: 'Events', path: '/events', description: 'Upcoming gatherings' },
         { name: 'Forms', path: '/forms', description: 'Surveys & registrations' },
+        { name: 'Music Hub', path: '/music-hub', description: 'Share and discover music' },
       ]
     },
     {
@@ -304,7 +305,7 @@ export const Navigation: React.FC = () => {
                       {/* Admin Panel - Only show for admin users */}
                       {user?.accountType === 'admin' && (
                         <Link
-                          to="/admin"
+                          to="/admin-panel"
                           onClick={() => setIsUserMenuOpen(false)}
                           className="w-full flex items-center space-x-2 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-white/10 dark:hover:bg-gray-800/50 transition-colors duration-300"
                         >
@@ -312,6 +313,15 @@ export const Navigation: React.FC = () => {
                           <span>Admin Panel</span>
                         </Link>
                       )}
+                      
+                      <Link
+                        to="/dashboard"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="w-full flex items-center space-x-2 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-white/10 dark:hover:bg-gray-800/50 transition-colors duration-300"
+                      >
+                        <User className="w-4 h-4" />
+                        <span>Dashboard</span>
+                      </Link>
                       
                       <button
                         onClick={handleLogout}
@@ -430,13 +440,21 @@ export const Navigation: React.FC = () => {
                       {/* Admin Panel for mobile - Only show for admin users */}
                       {user?.accountType === 'admin' && (
                         <Link
-                          to="/admin"
+                          to="/admin-panel"
                           onClick={closeMobileMenu}
                           className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-white/10 dark:hover:bg-gray-800/50 transition-all duration-300"
                         >
                           Admin Panel
                         </Link>
                       )}
+                      
+                      <Link
+                        to="/dashboard"
+                        onClick={closeMobileMenu}
+                        className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-white/10 dark:hover:bg-gray-800/50 transition-all duration-300"
+                      >
+                        Dashboard
+                      </Link>
                       
                       <button
                         onClick={() => {

@@ -24,8 +24,10 @@ import { SignUp } from './pages/SignUp';
 import { Profile } from './pages/Profile';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { License } from './pages/License';
-import { ArtGallery } from './pages/ArtGallery';
-import { ImageCreator } from './pages/ImageCreator';
+import { WarriorDashboard } from './pages/WarriorDashboard';
+import { MusicHub } from './pages/MusicHub';
+import { ChatPage } from './pages/Chat';
+import { AdminPanel } from './pages/AdminPanel';
 
 function AppContent() {
   return (
@@ -47,13 +49,13 @@ function AppContent() {
           <Route path="/puzzles" element={<Puzzles />} />
           <Route path="/events" element={<Events />} />
           <Route path="/contact" element={<Contact />} />
-          <Route path="/chat" element={<Chat />} />
-          <Route path="/art-gallery" element={<ArtGallery />} />
+          <Route path="/chat" element={<ChatPage />} />
+          <Route path="/music-hub" element={<MusicHub />} />
           <Route
-            path="/image-creator"
+            path="/dashboard"
             element={
-              <ProtectedRoute requireAdmin>
-                <ImageCreator />
+              <ProtectedRoute>
+                <WarriorDashboard />
               </ProtectedRoute>
             }
           />
@@ -68,10 +70,10 @@ function AppContent() {
             }
           />
           <Route
-            path="/admin"
+            path="/admin-panel"
             element={
               <ProtectedRoute requireAdmin>
-                <Admin />
+                <AdminPanel />
               </ProtectedRoute>
             }
           />

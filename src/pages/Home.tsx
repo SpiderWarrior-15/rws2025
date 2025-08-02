@@ -239,21 +239,21 @@ export const Home: React.FC = () => {
             <AnimatedButton
               variant="secondary"
               size="lg"
-              onClick={() => navigate('/art-gallery')}
+              onClick={() => navigate('/music-hub')}
               className={`border-yellow-500/50 text-yellow-300 hover:bg-yellow-500/20 flex items-center gap-2`}
-              icon={ImageIcon}
+              icon={Music}
             >
-              Art Gallery
+              Music Hub
             </AnimatedButton>
 
             <AnimatedButton
               variant="secondary"
               size="lg"
-              onClick={() => navigate('/search')}
+              onClick={() => navigate('/dashboard')}
               className={`border-yellow-500/50 text-yellow-300 hover:bg-yellow-500/20 flex items-center gap-2`}
-              icon={Search}
+              icon={User}
             >
-              Search
+              Dashboard
             </AnimatedButton>
           </motion.div>
 

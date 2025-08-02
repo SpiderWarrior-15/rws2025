@@ -493,7 +493,7 @@ export const Announcements: React.FC = () => {
                 </div>
                 <div className="mt-4 text-lg leading-relaxed">
                   {expandedAnnouncements.has(announcement.id) ? (
-                    <div className="prose prose-lg max-w-none">
+                    <div className="prose prose-lg max-w-none text-gray-800 dark:text-white">
                       {formatContent(announcement.content)}
                     </div>
                   ) : (
