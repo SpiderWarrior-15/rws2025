@@ -142,7 +142,7 @@ export default function Login() {
           <BarChart3 size={16} /> Realtime system in progress
         </div>
         <div className="flex items-center gap-2">
-          <Upload size={16} /> User data loads from `users.json`
+          <Upload size={16} /> User data loads from <code>users.json</code>
         </div>
         <div className="flex items-center gap-2">
           <MessageSquare size={16} /> Error handling included
