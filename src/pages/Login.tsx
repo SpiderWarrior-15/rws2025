@@ -1,8 +1,8 @@
 // ✅ Default export — don't use { Login } when importing
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import {
+import React,  useState, useEffect  from 'react';
+import  motion  from 'framer-motion';
+import  useNavigate  from 'react-router-dom';
+import 
   LogIn,
   Eye,
   EyeOff,
@@ -12,7 +12,7 @@ import {
   Upload,
   Settings,
   BarChart3
-} from 'lucide-react';
+ from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
