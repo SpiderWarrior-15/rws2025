@@ -1,179 +1,156 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { GlassCard } from '../components/GlassCard';
-import { AnimatedButton } from '../components/AnimatedButton';
-import { useAuth } from '../hooks/useAuth';
-import { useSounds } from '../hooks/useSounds';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import {
+  LogIn,
+  Eye,
+  EyeOff,
+  Shield,
+  Users,
+  MessageSquare,
+  Upload,
+  Settings,
+  BarChart3
+} from 'lucide-react';
 
-export const Login: React.FC = () => {
-  const navigate = useNavigate();
-  const { login, isLoading } = useAuth();
-  const { playSound } = useSounds();
-  const [formData, setFormData] = useState({ email: '', password: '' });
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+export default function Login() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetch('/users.json')
+      .then((res) => res.json())
+      .then((data) => {
+        setUsers(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to load users:', err);
+        setError('Error loading user data.');
+        setLoading(false);
+      });
+  }, []);
+
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
 
-    if (!formData.email.trim() || !formData.password.trim()) {
-      setError('Please enter both email and password');
-      playSound('error');
+    const foundUser = users.find(
+      (user) =>
+        user.email === email &&
+        user.password === password &&
+        user.approved === true
+    );
+
+    if (!foundUser) {
+      setError('Invalid credentials or user not approved.');
       return;
     }
 
-    try {
-      const success = await login(formData, rememberMe);
-      if (success) {
-        playSound('success');
-        navigate('/');
-      } else {
-        playSound('error');
-        setError('Invalid credentials or account not approved. Please check your email and password.');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      playSound('error');
-      setError('An error occurred during login. Please try again.');
+    localStorage.setItem('rws-user', JSON.stringify(foundUser));
+
+    if (foundUser.role === 'admin') {
+      navigate('/admin');
+    } else {
+      navigate('/dashboard');
     }
   };
 
   return (
-    <div className="min-h-screen pt-20 pb-12 flex items-center justify-center">
-      <div className="max-w-md w-full mx-4">
-        <GlassCard className="p-8">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 mb-4 rounded-3xl overflow-hidden shadow-xl bg-gradient-to-br from-yellow-400/30 to-yellow-600/30 backdrop-blur-lg border-2 border-yellow-500/40 relative">
-              <img 
-                src="/image.png" 
-                alt="Royal Warriors Squad" 
-                className="w-full h-full object-contain filter drop-shadow-lg rounded-3xl"
-              />
-              <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/20 via-transparent to-yellow-600/20 rounded-3xl"></div>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
-              Welcome Back, Warrior
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Sign in to your Royal Warriors Squad account
-            </p>
-          </div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-black to-gray-900 text-white p-4">
+      <motion.div
+        className="text-center mb-8"
+        initial={{ opacity: 0, y: -50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <h1 className="text-4xl font-bold mb-2">RWS Login</h1>
+        <p className="text-gray-400">Enter your credentials to access the squad</p>
+      </motion.div>
 
-          {/* 🌐 Google Sign-In Button */}
-          <div className="mb-6">
-            <button
-              onClick={() => window.location.href = 'https://rws2025.netlify.app/auth/google'}
-              
-              className="w-full flex items-center justify-center px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg shadow hover:bg-gray-100 transition"
-            >
-              <img
-                src="https://developers.google.com/identity/images/g-logo.png"
-                alt="Google"
-                className="w-5 h-5 mr-3"
-              />
-              Sign in with Google
-            </button>
-          </div>
-
+      {loading ? (
+        <p className="text-gray-400">Loading users...</p>
+      ) : (
+        <motion.form
+          onSubmit={handleLogin}
+          className="bg-white/10 p-6 rounded-xl w-full max-w-md space-y-4 shadow-2xl"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+        >
           {error && (
-            <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
-              <p className="text-red-400 text-sm">{error}</p>
+            <div className="bg-red-500/20 text-red-400 p-2 rounded text-sm">
+              ⚠️ {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full pl-10 pr-4 py-3 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-800 dark:text-white"
-                  placeholder="Enter your email"
-                  required
-                  autoComplete="email"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-10 pr-12 py-3 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-800 dark:text-white"
-                  placeholder="Enter your password"
-                  required
-                  autoComplete="current-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded bg-white/10 dark:bg-gray-800/50"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                  Remember me
-                </label>
-              </div>
-              <div className="text-sm">
-                <a href="#" className="font-medium text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 dark:hover:text-yellow-300">
-                  Forgot password?
-                </a>
-              </div>
-            </div>
-
-            <AnimatedButton
-              type="submit"
-              variant="primary"
-              size="lg"
-              className="w-full bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-700 hover:to-yellow-600"
-              disabled={isLoading}
-              soundType="success"
-            >
-              {isLoading ? 'Signing In...' : 'Sign In'}
-            </AnimatedButton>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Don't have an account?{' '}
-              <Link
-                to="/signup"
-                className="font-medium text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 dark:hover:text-yellow-300"
-              >
-                Join the Squad
-              </Link>
-            </p>
+          <div>
+            <label className="text-sm font-semibold block mb-1">Email</label>
+            <input
+              type="email"
+              value={email}
+              required
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-2 rounded bg-white/20 outline-none text-white"
+              placeholder="you@rws.com"
+            />
           </div>
-        </GlassCard>
+
+          <div className="relative">
+            <label className="text-sm font-semibold block mb-1">Password</label>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              required
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-2 rounded bg-white/20 outline-none text-white"
+              placeholder="••••••••"
+            />
+            <button
+              type="button"
+              className="absolute right-2 top-8 text-gray-300 hover:text-white"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 p-2 rounded-lg font-semibold transition"
+          >
+            <LogIn size={20} />
+            Login
+          </button>
+        </motion.form>
+      )}
+
+      {/* Sidebar legend for UI purposes */}
+      <div className="mt-12 max-w-md w-full text-sm text-gray-500 space-y-2">
+        <div className="flex items-center gap-2">
+          <Shield size={16} /> Admins go to the Admin Dashboard
+        </div>
+        <div className="flex items-center gap-2">
+          <Users size={16} /> Warriors go to their Dashboard
+        </div>
+        <div className="flex items-center gap-2">
+          <BarChart3 size={16} /> Realtime system in progress
+        </div>
+        <div className="flex items-center gap-2">
+          <Upload size={16} /> User data loads from `users.json`
+        </div>
+        <div className="flex items-center gap-2">
+          <MessageSquare size={16} /> Error handling included
+        </div>
+        <div className="flex items-center gap-2">
+          <Settings size={16} /> Extendable with Google Login, password hashing
+        </div>
       </div>
     </div>
   );
-};
+}
