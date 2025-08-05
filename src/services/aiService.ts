@@ -16,7 +16,7 @@ class AIService {
       // Create default AI model
       model = {
         id: uuidv4(),
-        name: 'Alan Warriors AI Assistant',
+        name: 'AI Assistant',
         description: 'AI Assistant for RWS platform administration',
         trainingData: this.getDefaultTrainingData(),
         responses: [],
