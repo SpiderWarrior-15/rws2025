@@ -19,7 +19,7 @@ import { Events } from './pages/Events';
 import { Contact } from './pages/Contact';
 import { Chat } from './pages/Chat';
 import { Admin } from './pages/Admin';
-import { Login } from './pages/Login';
+import Login from './pages/Login';
 import { SignUp } from './pages/SignUp';
 import { Profile } from './pages/Profile';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
