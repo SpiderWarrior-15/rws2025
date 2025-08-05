@@ -1,19 +1,23 @@
 import React, { useEffect, useRef } from 'react';
 
 const Aiservice = ({ messages }) => {
-  const scrollRef = useRef();
+  const scrollRef = useRef(null);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    const interval = setInterval(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
+    }, 300);
+
+    return () => clearInterval(interval);
   }, [messages]);
 
   return (
     <div
       ref={scrollRef}
       style={{
-        height: '400px',           // You can customize the height
+        height: '400px',
         overflowY: 'auto',
         padding: '1rem',
         border: '1px solid #444',
@@ -50,7 +54,6 @@ class AIService {
     let model = await fileService.getAIModel();
 
     if (!model) {
-      // Create default AI model
       model = {
         id: uuidv4(),
         name: 'AI Assistant',
