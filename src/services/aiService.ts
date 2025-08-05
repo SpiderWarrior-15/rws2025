@@ -11,7 +11,7 @@ class AIService {
 
   private async initializeModel() {
     let model = await fileService.getAIModel();
-    
+
     if (!model) {
       // Create default AI model
       model = {
@@ -24,10 +24,10 @@ class AIService {
         updatedAt: new Date().toISOString(),
         isActive: true
       };
-      
+
       await fileService.saveAIModel(model);
     }
-    
+
     this.model = model;
   }
 
@@ -82,15 +82,15 @@ class AIService {
     }
 
     const lowerPrompt = prompt.toLowerCase();
-    
+
     // Find matching training data
-    const matchingTraining = this.model!.trainingData.find(data => 
+    const matchingTraining = this.model!.trainingData.find(data =>
       lowerPrompt.includes(data.prompt.toLowerCase()) ||
       data.prompt.toLowerCase().includes(lowerPrompt)
     );
 
     let response = '';
-    
+
     if (matchingTraining) {
       response = matchingTraining.response;
     } else {
@@ -145,7 +145,7 @@ class AIService {
 
     this.model!.trainingData.push(trainingData);
     this.model!.updatedAt = new Date().toISOString();
-    
+
     await fileService.saveAIModel(this.model!);
   }
 
