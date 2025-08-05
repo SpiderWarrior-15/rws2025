@@ -1,3 +1,40 @@
+import React, { useEffect, useRef } from 'react';
+
+const Aiservice = ({ messages }) => {
+  const scrollRef = useRef();
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  return (
+    <div
+      ref={scrollRef}
+      style={{
+        height: '400px',           // You can customize the height
+        overflowY: 'auto',
+        padding: '1rem',
+        border: '1px solid #444',
+        borderRadius: '10px',
+        backgroundColor: '#111',
+      }}
+    >
+      {messages.map((msg, index) => (
+        <div key={index} style={{ marginBottom: '1rem', color: 'white' }}>
+          {msg}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default Aiservice;
+
+// ============================
+// AI SERVICE BACKEND SECTION
+// ============================
 import { AIModel, AITrainingData, AIResponse } from '../types';
 import { fileService } from './fileService';
 import { v4 as uuidv4 } from 'uuid';
@@ -83,7 +120,6 @@ class AIService {
 
     const lowerPrompt = prompt.toLowerCase();
 
-    // Find matching training data
     const matchingTraining = this.model!.trainingData.find(data =>
       lowerPrompt.includes(data.prompt.toLowerCase()) ||
       data.prompt.toLowerCase().includes(lowerPrompt)
@@ -94,7 +130,6 @@ class AIService {
     if (matchingTraining) {
       response = matchingTraining.response;
     } else {
-      // Generate contextual response based on keywords
       if (lowerPrompt.includes('active') && lowerPrompt.includes('warrior')) {
         response = 'I can help you analyze warrior activity. Would you like me to show engagement metrics, message counts, or form submissions?';
       } else if (lowerPrompt.includes('approve') || lowerPrompt.includes('pending')) {
@@ -110,7 +145,6 @@ class AIService {
       }
     }
 
-    // Save the interaction
     const aiResponse: AIResponse = {
       id: uuidv4(),
       prompt,
