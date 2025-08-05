@@ -12,22 +12,20 @@ import { Footer } from './components/Footer';
 import { Home } from './pages/Home';
 import { News } from './pages/News';
 import { Announcements } from './pages/Announcements';
-import { WarriorsPicks } from './pages/WarriorsPicks';
+import { AlanWalkers } from './pages/AlanWalkers';
 import { Tools } from './pages/Tools';
 import { Puzzles } from './pages/Puzzles';
 import { Events } from './pages/Events';
 import { Contact } from './pages/Contact';
-import { Chat } from './pages/Chat';
-import { Admin } from './pages/Admin';
+import { ChatPage } from './pages/Chat';
 import Login from './pages/Login';
 import { SignUp } from './pages/SignUp';
 import { Profile } from './pages/Profile';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { License } from './pages/License';
 import { WarriorDashboard } from './pages/WarriorDashboard';
-import { MusicHub } from './pages/MusicHub';
-import { ChatPage } from './pages/Chat';
-import { AdminPanel } from './pages/AdminPanel';
+import { ControlCenter } from './pages/ControlCenter';
+import { AIAssistant } from './components/AIAssistant';
 
 function AppContent() {
   return (
@@ -44,13 +42,12 @@ function AppContent() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/news" element={<News />} />
           <Route path="/announcements" element={<Announcements />} />
-          <Route path="/warriors-picks" element={<WarriorsPicks />} />
+          <Route path="/alan-walkers" element={<AlanWalkers />} />
           <Route path="/tools" element={<Tools />} />
           <Route path="/puzzles" element={<Puzzles />} />
           <Route path="/events" element={<Events />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/chat" element={<ChatPage />} />
-          <Route path="/music-hub" element={<MusicHub />} />
           <Route
             path="/dashboard"
             element={
@@ -70,15 +67,19 @@ function AppContent() {
             }
           />
           <Route
-            path="/admin-panel"
+            path="/control-center"
             element={
               <ProtectedRoute requireAdmin>
-                <AdminPanel />
+                <ControlCenter />
               </ProtectedRoute>
             }
           />
         </Routes>
       </motion.main>
+      
+      {/* AI Assistant - Available to all users */}
+      <AIAssistant />
+      
       <Footer />
 
       <Toaster

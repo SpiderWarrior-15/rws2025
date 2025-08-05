@@ -79,7 +79,7 @@ export const Navigation: React.FC = () => {
       dropdown: [
         { name: 'News', path: '/news', description: 'Latest tech updates' },
         { name: 'Announcements', path: '/announcements', description: 'Important updates' },
-        { name: "Warriors' Picks", path: '/warriors-picks', description: 'Community favorites' },
+        { name: "Alan Walkers", path: '/alan-walkers', description: 'Alan Walker universe' },
       ]
     },
     { name: 'Tools', path: '/tools' },
@@ -305,12 +305,12 @@ export const Navigation: React.FC = () => {
                       {/* Admin Panel - Only show for admin users */}
                       {user?.accountType === 'admin' && (
                         <Link
-                          to="/admin-panel"
+                          to="/control-center"
                           onClick={() => setIsUserMenuOpen(false)}
                           className="w-full flex items-center space-x-2 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-white/10 dark:hover:bg-gray-800/50 transition-colors duration-300"
                         >
                           <Crown className="w-4 h-4" />
-                          <span>Admin Panel</span>
+                          <span>Control Center</span>
                         </Link>
                       )}
                       
@@ -440,11 +440,11 @@ export const Navigation: React.FC = () => {
                       {/* Admin Panel for mobile - Only show for admin users */}
                       {user?.accountType === 'admin' && (
                         <Link
-                          to="/admin-panel"
+                          to="/control-center"
                           onClick={closeMobileMenu}
                           className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-white/10 dark:hover:bg-gray-800/50 transition-all duration-300"
                         >
-                          Admin Panel
+                          Control Center
                         </Link>
                       )}
                       

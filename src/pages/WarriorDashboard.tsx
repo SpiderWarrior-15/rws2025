@@ -270,10 +270,10 @@ export const WarriorDashboard: React.FC = () => {
             <AnimatedButton
               variant="primary"
               className="h-24 flex-col space-y-2 bg-gradient-to-r from-pink-600 to-red-600"
-              onClick={() => window.location.href = '/music-hub'}
+              onClick={() => window.location.href = '/alan-walkers'}
             >
               <Music className="w-6 h-6" />
-              <span>Music Hub</span>
+              <span>Alan Walkers</span>
             </AnimatedButton>
           </div>
         </div>

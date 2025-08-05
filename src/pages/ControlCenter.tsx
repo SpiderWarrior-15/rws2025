@@ -4,25 +4,28 @@ import {
   Crown, 
   Users, 
   MessageCircle, 
-  FileText, 
-  Music, 
-  Calendar, 
-  Brain, 
-  Activity,
-  Settings,
+  Settings, 
   Shield,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
+  Activity,
   Bot,
+  BarChart3,
+  Zap,
+  Eye,
+  EyeOff,
+  ToggleLeft,
+  ToggleRight,
   Send,
   Trash2,
   UserPlus,
   UserMinus,
-  Eye,
-  Download,
-  TrendingUp,
-  BarChart3
+  Ban,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  Monitor,
+  Database,
+  Wifi,
+  Server
 } from 'lucide-react';
 import { GlassCard } from '../components/GlassCard';
 import { AnimatedButton } from '../components/AnimatedButton';
@@ -33,35 +36,42 @@ import { socketService } from '../services/socketService';
 import { 
   User, 
   Message, 
-  Chat, 
-  CustomForm, 
-  FormSubmission, 
-  SongUpload, 
-  Event, 
-  ApprovalRequest,
+  PlatformSettings, 
   Activity as ActivityType,
   AITrainingData,
-  GlobalStats
+  GlobalStats,
+  ApprovalRequest
 } from '../types';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
-export const AdminPanel: React.FC = () => {
+export const ControlCenter: React.FC = () => {
   const { user, users, promoteUser, banUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'messages' | 'approvals' | 'ai' | 'analytics'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'messages' | 'settings' | 'ai' | 'system'>('overview');
   const [messages, setMessages] = useState<Message[]>([]);
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [forms, setForms] = useState<CustomForm[]>([]);
-  const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
-  const [songs, setSongs] = useState<SongUpload[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
   const [activities, setActivities] = useState<ActivityType[]>([]);
+  const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
+  const [settings, setSettings] = useState<PlatformSettings>({
+    id: 'main',
+    darkModeEnabled: true,
+    challengesEnabled: true,
+    eventsEnabled: true,
+    avatarsEnabled: true,
+    uploadsEnabled: true,
+    quizzesEnabled: true,
+    aiAssistantEnabled: true,
+    globalChatEnabled: true,
+    registrationEnabled: true,
+    maintenanceMode: false,
+    updatedBy: 'system',
+    updatedAt: new Date().toISOString()
+  });
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiResponse, setAiResponse] = useState('');
   const [aiTraining, setAiTraining] = useState<AITrainingData[]>([]);
   const [isTrainingAI, setIsTrainingAI] = useState(false);
   const [trainingData, setTrainingData] = useState({ prompt: '', response: '', category: 'general' });
+  const [globalMessage, setGlobalMessage] = useState('');
   const [stats, setStats] = useState<GlobalStats>({
     totalUsers: 0,
     activeUsers: 0,
@@ -70,7 +80,8 @@ export const AdminPanel: React.FC = () => {
     totalEvents: 0,
     totalSongs: 0,
     totalPuzzles: 0,
-    pendingApprovals: 0
+    pendingApprovals: 0,
+    totalAchievements: 0
   });
 
   const isAdmin = user?.role === 'admin';
@@ -78,6 +89,7 @@ export const AdminPanel: React.FC = () => {
   useEffect(() => {
     if (isAdmin) {
       loadAllData();
+      loadSettings();
     }
   }, [isAdmin]);
 
@@ -85,34 +97,19 @@ export const AdminPanel: React.FC = () => {
     try {
       const [
         allMessages,
-        allChats,
-        allForms,
-        allSubmissions,
-        allSongs,
-        allEvents,
-        allApprovals,
         allActivities,
+        allApprovals,
         trainingData
       ] = await Promise.all([
         fileService.getMessages(),
-        fileService.getChats(),
-        fileService.getForms(),
-        fileService.getFormSubmissions(),
-        fileService.getSongUploads(),
-        fileService.getEvents(),
-        fileService.getApprovalRequests(),
         fileService.getActivities(),
+        fileService.getApprovalRequests(),
         aiService.getTrainingData()
       ]);
 
       setMessages(allMessages);
-      setChats(allChats);
-      setForms(allForms);
-      setSubmissions(allSubmissions);
-      setSongs(allSongs);
-      setEvents(allEvents);
-      setApprovals(allApprovals);
       setActivities(allActivities);
+      setApprovals(allApprovals);
       setAiTraining(trainingData);
 
       // Calculate stats
@@ -123,15 +120,43 @@ export const AdminPanel: React.FC = () => {
         totalUsers: users.length,
         activeUsers,
         totalMessages: allMessages.length,
-        totalForms: allForms.length,
-        totalEvents: allEvents.length,
-        totalSongs: allSongs.length,
+        totalForms: 0, // Will be implemented
+        totalEvents: 0, // Will be implemented
+        totalSongs: 0, // Will be implemented
         totalPuzzles: 0, // Will be implemented
-        pendingApprovals
+        pendingApprovals,
+        totalAchievements: 0
       });
     } catch (error) {
       console.error('Error loading admin data:', error);
     }
+  };
+
+  const loadSettings = async () => {
+    try {
+      const savedSettings = await fileService.readFile<PlatformSettings>('platform_settings.json', []);
+      if (savedSettings.length > 0) {
+        setSettings(savedSettings[0]);
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+  };
+
+  const updateSetting = async (key: keyof PlatformSettings, value: any) => {
+    const updatedSettings = {
+      ...settings,
+      [key]: value,
+      updatedBy: user!.id,
+      updatedAt: new Date().toISOString()
+    };
+    
+    setSettings(updatedSettings);
+    await fileService.writeFile('platform_settings.json', [updatedSettings]);
+    
+    // Broadcast setting change
+    socketService.emit('settings_updated', updatedSettings);
+    toast.success(`${key} ${value ? 'enabled' : 'disabled'}`);
   };
 
   const handleAICommand = async () => {
@@ -145,29 +170,16 @@ export const AdminPanel: React.FC = () => {
       // Execute actual commands based on prompt
       const lowerPrompt = aiPrompt.toLowerCase();
       
-      if (lowerPrompt.includes('approve all pending songs')) {
-        const pendingSongs = songs.filter(s => !s.isApproved);
-        for (const song of pendingSongs) {
-          await fileService.updateSongUpload(song.id, {
-            isApproved: true,
-            approvedBy: user!.id,
-            approvedAt: new Date().toISOString()
+      if (lowerPrompt.includes('approve all pending')) {
+        const pendingApprovals = approvals.filter(a => a.status === 'pending');
+        for (const approval of pendingApprovals) {
+          await fileService.updateApprovalRequest(approval.id, {
+            status: 'approved',
+            reviewedBy: user!.id,
+            reviewedAt: new Date().toISOString()
           });
         }
-        toast.success(`Approved ${pendingSongs.length} songs`);
-        loadAllData();
-      }
-      
-      if (lowerPrompt.includes('approve all pending groups')) {
-        const pendingGroups = chats.filter(c => !c.isVerified && c.type === 'group');
-        for (const group of pendingGroups) {
-          await fileService.updateChat(group.id, {
-            isVerified: true,
-            verifiedBy: user!.id,
-            verifiedAt: new Date().toISOString()
-          });
-        }
-        toast.success(`Approved ${pendingGroups.length} groups`);
+        toast.success(`Approved ${pendingApprovals.length} pending items`);
         loadAllData();
       }
       
@@ -200,60 +212,38 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
-  const handleApproval = async (approvalId: string, approved: boolean, rejectionReason?: string) => {
+  const broadcastGlobalMessage = async () => {
+    if (!globalMessage.trim()) return;
+
     try {
-      const approval = approvals.find(a => a.id === approvalId);
-      if (!approval) return;
+      const message = {
+        id: Date.now().toString(),
+        content: globalMessage,
+        type: 'system' as const,
+        timestamp: new Date().toISOString(),
+        senderId: user!.id,
+        senderUsername: 'System Admin',
+        chatId: 'global'
+      };
 
-      await fileService.updateApprovalRequest(approvalId, {
-        status: approved ? 'approved' : 'rejected',
-        reviewedBy: user!.id,
-        reviewedAt: new Date().toISOString(),
-        rejectionReason
-      });
-
-      // Update the actual item based on type
-      if (approval.type === 'song') {
-        await fileService.updateSongUpload(approval.itemId, {
-          isApproved: approved,
-          approvedBy: user!.id,
-          approvedAt: approved ? new Date().toISOString() : undefined,
-          rejectionReason
-        });
-      } else if (approval.type === 'group') {
-        await fileService.updateChat(approval.itemId, {
-          isVerified: approved,
-          verifiedBy: user!.id,
-          verifiedAt: new Date().toISOString()
-        });
-      }
-
-      toast.success(`${approval.type} ${approved ? 'approved' : 'rejected'} successfully`);
-      loadAllData();
+      await fileService.appendToFile('messages.json', message);
+      socketService.emit('message_sent', message);
+      
+      setGlobalMessage('');
+      toast.success('Global message broadcasted');
     } catch (error) {
-      console.error('Approval error:', error);
-      toast.error('Failed to process approval');
+      console.error('Broadcast error:', error);
+      toast.error('Failed to broadcast message');
     }
-  };
-
-  const exportData = (data: any[], filename: string) => {
-    const jsonData = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${filename}_${format(new Date(), 'yyyy-MM-dd')}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const tabItems = [
     { id: 'overview', name: 'Overview', icon: BarChart3 },
     { id: 'users', name: 'Users', icon: Users },
     { id: 'messages', name: 'Messages', icon: MessageCircle },
-    { id: 'approvals', name: 'Approvals', icon: CheckCircle },
+    { id: 'settings', name: 'Settings', icon: Settings },
     { id: 'ai', name: 'AI Assistant', icon: Bot },
-    { id: 'analytics', name: 'Analytics', icon: TrendingUp }
+    { id: 'system', name: 'System', icon: Monitor }
   ];
 
   if (!isAdmin) {
@@ -265,7 +255,7 @@ export const AdminPanel: React.FC = () => {
             Access Denied
           </h2>
           <p className="text-gray-600 dark:text-gray-400">
-            Only administrators can access this panel
+            Only Spider Warrior can access the Control Center
           </p>
         </GlassCard>
       </div>
@@ -286,10 +276,10 @@ export const AdminPanel: React.FC = () => {
             <span className="text-lg font-semibold text-red-400">God Mode Activated</span>
           </div>
           <h1 className="text-5xl md:text-7xl font-bold mb-8 bg-gradient-to-r from-red-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-gradient">
-            Admin Command Center
+            Control Center
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-400 max-w-4xl mx-auto leading-relaxed">
-            Ultimate control over the RWS: Alan Warriors Edition platform
+            Ultimate command and control over the Alan Warriors platform
           </p>
         </motion.div>
 
@@ -328,7 +318,7 @@ export const AdminPanel: React.FC = () => {
               <GlassCard className="p-6 text-center border-blue-500/20">
                 <Users className="w-8 h-8 text-blue-400 mx-auto mb-3" />
                 <div className="text-3xl font-bold text-blue-400 mb-1">{stats.totalUsers}</div>
-                <div className="text-sm text-gray-400">Total Users</div>
+                <div className="text-sm text-gray-400">Total Warriors</div>
                 <div className="text-xs text-green-400 mt-1">{stats.activeUsers} online</div>
               </GlassCard>
 
@@ -338,20 +328,45 @@ export const AdminPanel: React.FC = () => {
                 <div className="text-sm text-gray-400">Messages</div>
               </GlassCard>
 
-              <GlassCard className="p-6 text-center border-green-500/20">
-                <FileText className="w-8 h-8 text-green-400 mx-auto mb-3" />
-                <div className="text-3xl font-bold text-green-400 mb-1">{stats.totalForms}</div>
-                <div className="text-sm text-gray-400">Forms</div>
-              </GlassCard>
-
               <GlassCard className="p-6 text-center border-yellow-500/20">
                 <AlertTriangle className="w-8 h-8 text-yellow-400 mx-auto mb-3" />
                 <div className="text-3xl font-bold text-yellow-400 mb-1">{stats.pendingApprovals}</div>
                 <div className="text-sm text-gray-400">Pending</div>
               </GlassCard>
+
+              <GlassCard className="p-6 text-center border-green-500/20">
+                <Activity className="w-8 h-8 text-green-400 mx-auto mb-3" />
+                <div className="text-3xl font-bold text-green-400 mb-1">{activities.length}</div>
+                <div className="text-sm text-gray-400">Activities</div>
+              </GlassCard>
             </div>
 
-            {/* Recent Activity */}
+            {/* Global Broadcast */}
+            <GlassCard className="p-6">
+              <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+                <Zap className="w-5 h-5 mr-2 text-yellow-500" />
+                Global Broadcast
+              </h3>
+              <div className="flex space-x-4">
+                <input
+                  type="text"
+                  value={globalMessage}
+                  onChange={(e) => setGlobalMessage(e.target.value)}
+                  className="flex-1 px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-800 dark:text-white"
+                  placeholder="Send a message to all warriors..."
+                />
+                <AnimatedButton
+                  variant="primary"
+                  icon={Send}
+                  onClick={broadcastGlobalMessage}
+                  disabled={!globalMessage.trim()}
+                >
+                  Broadcast
+                </AnimatedButton>
+              </div>
+            </GlassCard>
+
+            {/* Live Activity Feed */}
             <GlassCard className="p-6">
               <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
                 <Activity className="w-5 h-5 mr-2 text-green-500" />
@@ -385,15 +400,8 @@ export const AdminPanel: React.FC = () => {
           >
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-                User Management ({users.length})
+                Warrior Management ({users.length})
               </h2>
-              <AnimatedButton
-                variant="secondary"
-                icon={Download}
-                onClick={() => exportData(users, 'users')}
-              >
-                Export Users
-              </AnimatedButton>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -402,9 +410,15 @@ export const AdminPanel: React.FC = () => {
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center">
-                        <span className="text-white font-bold">
-                          {warrior.username.charAt(0).toUpperCase()}
-                        </span>
+                        {warrior.avatar ? (
+                          <span className="text-white font-bold">
+                            {warrior.avatar.name.charAt(0).toUpperCase()}
+                          </span>
+                        ) : (
+                          <span className="text-white font-bold">
+                            {warrior.username.charAt(0).toUpperCase()}
+                          </span>
+                        )}
                       </div>
                       <div>
                         <h3 className="font-bold text-gray-800 dark:text-white">
@@ -422,8 +436,7 @@ export const AdminPanel: React.FC = () => {
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600 dark:text-gray-400">Role:</span>
                       <span className={`font-medium ${
-                        warrior.role === 'admin' ? 'text-red-400' :
-                        warrior.role === 'commander' ? 'text-blue-400' : 'text-green-400'
+                        warrior.role === 'admin' ? 'text-red-400' : 'text-blue-400'
                       }`}>
                         {warrior.role.toUpperCase()}
                       </span>
@@ -435,29 +448,29 @@ export const AdminPanel: React.FC = () => {
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600 dark:text-gray-400">Joined:</span>
                       <span className="text-gray-800 dark:text-white">
-                        {format(new Date(warrior.joinedAt), 'MMM dd, yyyy')}
+                        {format(new Date(warrior.createdAt), 'MMM dd, yyyy')}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex space-x-2">
-                    {warrior.role === 'warrior' && (
+                    {warrior.role === 'user' && (
                       <AnimatedButton
                         variant="secondary"
                         size="sm"
                         icon={UserPlus}
-                        onClick={() => promoteUser(warrior.id, 'commander')}
+                        onClick={() => promoteUser(warrior.id, 'admin')}
                         className="flex-1"
                       >
                         Promote
                       </AnimatedButton>
                     )}
-                    {warrior.role === 'commander' && (
+                    {warrior.role === 'admin' && warrior.id !== user?.id && (
                       <AnimatedButton
                         variant="secondary"
                         size="sm"
                         icon={UserMinus}
-                        onClick={() => promoteUser(warrior.id, 'warrior')}
+                        onClick={() => promoteUser(warrior.id, 'user')}
                         className="flex-1"
                       >
                         Demote
@@ -467,7 +480,7 @@ export const AdminPanel: React.FC = () => {
                       <AnimatedButton
                         variant="ghost"
                         size="sm"
-                        icon={Shield}
+                        icon={Ban}
                         onClick={() => banUser(warrior.id)}
                         className="text-red-500"
                       >
@@ -481,128 +494,51 @@ export const AdminPanel: React.FC = () => {
           </motion.div>
         )}
 
-        {/* Messages Tab */}
-        {activeTab === 'messages' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
-          >
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-                All Messages ({messages.length})
-              </h2>
-              <AnimatedButton
-                variant="secondary"
-                icon={Download}
-                onClick={() => exportData(messages, 'messages')}
-              >
-                Export Messages
-              </AnimatedButton>
-            </div>
-
-            <GlassCard className="p-6">
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {messages.slice(-50).reverse().map(message => (
-                  <div key={message.id} className="flex items-start space-x-3 p-3 bg-white/5 rounded-lg">
-                    <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-xs font-bold">
-                        {message.senderUsername.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <span className="font-medium text-gray-800 dark:text-white">
-                          {message.senderUsername}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {format(new Date(message.timestamp), 'MMM dd, HH:mm')}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {message.content}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        if (confirm('Delete this message?')) {
-                          fileService.deleteFromFile('messages.json', message.id);
-                          loadAllData();
-                        }
-                      }}
-                      className="p-1 text-red-400 hover:text-red-600"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </GlassCard>
-          </motion.div>
-        )}
-
-        {/* Approvals Tab */}
-        {activeTab === 'approvals' && (
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-              Pending Approvals ({approvals.filter(a => a.status === 'pending').length})
+              Platform Settings
             </h2>
 
-            <div className="space-y-4">
-              {approvals.filter(a => a.status === 'pending').map(approval => (
-                <GlassCard key={approval.id} className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-bold text-gray-800 dark:text-white mb-1">
-                        {approval.type.toUpperCase()} Approval Request
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Requested by user ID: {approval.requestedBy}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {format(new Date(approval.requestedAt), 'MMM dd, yyyy HH:mm')}
-                      </p>
-                    </div>
-                    <div className="flex space-x-2">
-                      <AnimatedButton
-                        variant="secondary"
-                        size="sm"
-                        icon={CheckCircle}
-                        onClick={() => handleApproval(approval.id, true)}
-                        className="bg-green-500/20 text-green-400 border-green-500/30"
+            <div className="grid md:grid-cols-2 gap-6">
+              {Object.entries(settings)
+                .filter(([key]) => !['id', 'updatedBy', 'updatedAt'].includes(key))
+                .map(([key, value]) => (
+                  <GlassCard key={key} className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-bold text-gray-800 dark:text-white capitalize">
+                          {key.replace(/([A-Z])/g, ' $1').trim()}
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {key === 'darkModeEnabled' && 'Allow users to toggle dark mode'}
+                          {key === 'challengesEnabled' && 'Enable puzzle and quiz challenges'}
+                          {key === 'eventsEnabled' && 'Allow event creation and participation'}
+                          {key === 'avatarsEnabled' && 'Enable custom avatar creation'}
+                          {key === 'uploadsEnabled' && 'Allow file and media uploads'}
+                          {key === 'quizzesEnabled' && 'Enable quiz system'}
+                          {key === 'aiAssistantEnabled' && 'Enable AI assistant for users'}
+                          {key === 'globalChatEnabled' && 'Enable global chat system'}
+                          {key === 'registrationEnabled' && 'Allow new user registration'}
+                          {key === 'maintenanceMode' && 'Put platform in maintenance mode'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => updateSetting(key as keyof PlatformSettings, !value)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          value ? 'text-green-400' : 'text-gray-400'
+                        }`}
                       >
-                        Approve
-                      </AnimatedButton>
-                      <AnimatedButton
-                        variant="secondary"
-                        size="sm"
-                        icon={XCircle}
-                        onClick={() => {
-                          const reason = prompt('Rejection reason (optional):');
-                          handleApproval(approval.id, false, reason || undefined);
-                        }}
-                        className="bg-red-500/20 text-red-400 border-red-500/30"
-                      >
-                        Reject
-                      </AnimatedButton>
+                        {value ? <ToggleRight className="w-8 h-8" /> : <ToggleLeft className="w-8 h-8" />}
+                      </button>
                     </div>
-                  </div>
-                </GlassCard>
-              ))}
-
-              {approvals.filter(a => a.status === 'pending').length === 0 && (
-                <div className="text-center py-12">
-                  <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-medium text-gray-600 dark:text-gray-400">
-                    All caught up!
-                  </h3>
-                  <p className="text-gray-500">No pending approvals at this time.</p>
-                </div>
-              )}
+                  </GlassCard>
+                ))}
             </div>
           </motion.div>
         )}
@@ -619,7 +555,7 @@ export const AdminPanel: React.FC = () => {
               <GlassCard className="p-6">
                 <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
                   <Bot className="w-5 h-5 mr-2 text-purple-500" />
-                  AI Assistant
+                  AI Command Interface
                 </h3>
                 
                 <div className="space-y-4">
@@ -631,7 +567,9 @@ export const AdminPanel: React.FC = () => {
                       </div>
                     ) : (
                       <div className="text-center text-gray-500 py-8">
-                        Ask me anything about platform management!
+                        <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>AI Assistant ready for commands!</p>
+                        <p className="text-xs mt-2">Try: "show me most active warriors" or "approve all pending"</p>
                       </div>
                     )}
                   </div>
@@ -643,7 +581,7 @@ export const AdminPanel: React.FC = () => {
                       onChange={(e) => setAiPrompt(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleAICommand()}
                       className="flex-1 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800 dark:text-white"
-                      placeholder="Ask AI assistant..."
+                      placeholder="Command the AI..."
                     />
                     <AnimatedButton
                       variant="primary"
@@ -651,12 +589,8 @@ export const AdminPanel: React.FC = () => {
                       onClick={handleAICommand}
                       disabled={!aiPrompt.trim()}
                     >
-                      Send
+                      Execute
                     </AnimatedButton>
-                  </div>
-                  
-                  <div className="text-xs text-gray-500">
-                    Try: "show me most active warriors", "approve all pending songs", "generate activity report"
                   </div>
                 </div>
               </GlassCard>
@@ -670,7 +604,7 @@ export const AdminPanel: React.FC = () => {
                 {!isTrainingAI ? (
                   <div className="space-y-4">
                     <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Current training data: {aiTraining.length} entries
+                      Training data entries: {aiTraining.length}
                     </div>
                     <AnimatedButton
                       variant="secondary"
@@ -697,7 +631,7 @@ export const AdminPanel: React.FC = () => {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Prompt
+                        Command/Prompt
                       </label>
                       <input
                         type="text"
@@ -710,7 +644,7 @@ export const AdminPanel: React.FC = () => {
                     
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Response
+                        Expected Response
                       </label>
                       <textarea
                         value={trainingData.response}
@@ -734,7 +668,7 @@ export const AdminPanel: React.FC = () => {
                         <option value="moderation">Moderation</option>
                         <option value="analytics">Analytics</option>
                         <option value="communication">Communication</option>
-                        <option value="reporting">Reporting</option>
+                        <option value="alan_walker">Alan Walker</option>
                       </select>
                     </div>
                     
@@ -764,72 +698,78 @@ export const AdminPanel: React.FC = () => {
           </motion.div>
         )}
 
-        {/* Analytics Tab */}
-        {activeTab === 'analytics' && (
+        {/* System Tab */}
+        {activeTab === 'system' && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-              Platform Analytics
+              System Monitoring
             </h2>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <GlassCard className="p-6">
-                <h3 className="font-bold text-gray-800 dark:text-white mb-4">User Growth</h3>
-                <div className="text-3xl font-bold text-blue-400 mb-2">{stats.totalUsers}</div>
-                <div className="text-sm text-gray-400">Total registered warriors</div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <GlassCard className="p-6 text-center">
+                <Server className="w-8 h-8 text-green-400 mx-auto mb-3" />
+                <div className="text-2xl font-bold text-green-400 mb-1">Online</div>
+                <div className="text-sm text-gray-400">Server Status</div>
               </GlassCard>
 
-              <GlassCard className="p-6">
-                <h3 className="font-bold text-gray-800 dark:text-white mb-4">Engagement</h3>
-                <div className="text-3xl font-bold text-green-400 mb-2">{stats.totalMessages}</div>
-                <div className="text-sm text-gray-400">Messages exchanged</div>
+              <GlassCard className="p-6 text-center">
+                <Database className="w-8 h-8 text-blue-400 mx-auto mb-3" />
+                <div className="text-2xl font-bold text-blue-400 mb-1">JSON</div>
+                <div className="text-sm text-gray-400">Storage Type</div>
               </GlassCard>
 
-              <GlassCard className="p-6">
-                <h3 className="font-bold text-gray-800 dark:text-white mb-4">Content</h3>
-                <div className="text-3xl font-bold text-purple-400 mb-2">
-                  {stats.totalForms + stats.totalEvents + stats.totalSongs}
-                </div>
-                <div className="text-sm text-gray-400">Total content items</div>
+              <GlassCard className="p-6 text-center">
+                <Wifi className="w-8 h-8 text-purple-400 mx-auto mb-3" />
+                <div className="text-2xl font-bold text-purple-400 mb-1">Active</div>
+                <div className="text-sm text-gray-400">Real-time Sync</div>
+              </GlassCard>
+
+              <GlassCard className="p-6 text-center">
+                <Shield className="w-8 h-8 text-yellow-400 mx-auto mb-3" />
+                <div className="text-2xl font-bold text-yellow-400 mb-1">Secure</div>
+                <div className="text-sm text-gray-400">Security Status</div>
               </GlassCard>
             </div>
 
-            <div className="grid lg:grid-cols-2 gap-8">
-              <GlassCard className="p-6">
-                <h3 className="font-bold text-gray-800 dark:text-white mb-4">Recent Form Submissions</h3>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {submissions.slice(-10).reverse().map(submission => (
-                    <div key={submission.id} className="flex justify-between items-center p-2 bg-white/5 rounded">
-                      <span className="text-sm text-gray-800 dark:text-white">{submission.username}</span>
-                      <span className="text-xs text-gray-500">
-                        {format(new Date(submission.submittedAt), 'MMM dd')}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </GlassCard>
-
-              <GlassCard className="p-6">
-                <h3 className="font-bold text-gray-800 dark:text-white mb-4">Song Upload Status</h3>
+            <GlassCard className="p-6">
+              <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4">
+                System Information
+              </h3>
+              <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Approved:</span>
-                    <span className="text-green-400">{songs.filter(s => s.isApproved).length}</span>
+                    <span className="text-gray-600 dark:text-gray-400">Platform Version:</span>
+                    <span className="text-gray-800 dark:text-white">Alan Warriors v2.0</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Pending:</span>
-                    <span className="text-yellow-400">{songs.filter(s => !s.isApproved).length}</span>
+                    <span className="text-gray-600 dark:text-gray-400">Uptime:</span>
+                    <span className="text-green-400">99.9%</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Total:</span>
-                    <span className="text-gray-800 dark:text-white">{songs.length}</span>
+                    <span className="text-gray-600 dark:text-gray-400">Storage Used:</span>
+                    <span className="text-blue-400">2.3 MB</span>
                   </div>
                 </div>
-              </GlassCard>
-            </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Active Sessions:</span>
+                    <span className="text-purple-400">{stats.activeUsers}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Data Files:</span>
+                    <span className="text-yellow-400">12 JSON files</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Last Backup:</span>
+                    <span className="text-gray-800 dark:text-white">Auto-sync</span>
+                  </div>
+                </div>
+              </div>
+            </GlassCard>
           </motion.div>
         )}
       </div>

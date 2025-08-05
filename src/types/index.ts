@@ -1,22 +1,42 @@
-// Core User Types
+// Enhanced Types for RWS: Alan Warriors Edition
 export interface User {
   id: string;
   username: string;
   email: string;
-  password: string; // Plaintext for now
-  role: 'admin' | 'commander' | 'warrior';
-  avatar?: string;
-  joinedAt: string;
+  password: string; // Will be hashed with bcrypt
+  role: 'user' | 'admin';
+  avatar?: UserAvatar;
+  createdAt: string;
   lastActive: string;
   isOnline: boolean;
   isBanned: boolean;
-  stats: {
-    messagesCount: number;
-    formsSubmitted: number;
-    eventsAttended: number;
-    songsUploaded: number;
-    puzzlesSolved: number;
-  };
+  stats: UserStats;
+  preferences: UserPreferences;
+}
+
+export interface UserAvatar {
+  mask: string;
+  name: string;
+  badge: string;
+  color: string;
+}
+
+export interface UserStats {
+  messagesCount: number;
+  formsSubmitted: number;
+  eventsAttended: number;
+  songsUploaded: number;
+  puzzlesSolved: number;
+  quizzesCompleted: number;
+  achievementsUnlocked: number;
+  totalPoints: number;
+}
+
+export interface UserPreferences {
+  darkMode: boolean;
+  notifications: boolean;
+  soundEffects: boolean;
+  language: string;
 }
 
 // Real-time Messaging System
@@ -24,9 +44,10 @@ export interface Message {
   id: string;
   senderId: string;
   senderUsername: string;
+  senderAvatar?: UserAvatar;
   content: string;
   timestamp: string;
-  type: 'text' | 'image' | 'file';
+  type: 'text' | 'image' | 'file' | 'system';
   chatId: string;
   isEdited: boolean;
   editedAt?: string;
@@ -101,22 +122,37 @@ export interface FormSubmission {
   files?: UploadedFile[];
 }
 
-// Song Upload System
-export interface SongUpload {
+// Alan Walker Music System
+export interface AlanWalkerTrack {
   id: string;
   title: string;
   artist: string;
-  uploadedBy: string;
-  uploaderUsername: string;
-  fileUrl?: string;
+  album?: string;
+  releaseDate: string;
+  duration: string;
   youtubeUrl?: string;
-  description: string;
+  spotifyUrl?: string;
+  category: 'official' | 'remix' | 'fan_creation' | 'unreleased';
+  isVerified: boolean;
+  uploadedBy: string;
   uploadedAt: string;
-  isApproved: boolean;
   approvedBy?: string;
   approvedAt?: string;
-  rejectionReason?: string;
-  category: 'alan_walker' | 'original' | 'remix' | 'cover' | 'other';
+  tags: string[];
+  lore?: string;
+  trivia?: string[];
+}
+
+// Walker Lore System
+export interface WalkerLore {
+  id: string;
+  title: string;
+  content: string;
+  category: 'biography' | 'song_meaning' | 'production' | 'trivia' | 'fan_theory';
+  isUnlocked: boolean;
+  unlockCondition: string;
+  createdBy: string;
+  createdAt: string;
   tags: string[];
 }
 
@@ -137,7 +173,7 @@ export interface Event {
   approvedAt?: string;
   maxParticipants?: number;
   participants: string[];
-  category: 'gaming' | 'tech' | 'music' | 'social' | 'competition' | 'other';
+  category: 'gaming' | 'tech' | 'music' | 'social' | 'competition' | 'alan_walker' | 'other';
 }
 
 // Puzzle System
@@ -156,6 +192,8 @@ export interface Puzzle {
   approvedAt?: string;
   points: number;
   hints?: string[];
+  weekNumber?: number;
+  year?: number;
 }
 
 export interface PuzzleAttempt {
@@ -164,9 +202,11 @@ export interface PuzzleAttempt {
   userId: string;
   username: string;
   answer: string;
-  isCorrect: boolean;
+  isCorrect: boolean | null;
   submittedAt: string;
   pointsEarned: number;
+  reviewedBy?: string;
+  reviewedAt?: string;
 }
 
 // Quiz System
@@ -183,7 +223,7 @@ export interface Quiz {
   approvedBy?: string;
   approvedAt?: string;
   timeLimit?: number;
-  category: string;
+  category: 'alan_walker' | 'music' | 'general' | 'tech';
   difficulty: 'easy' | 'medium' | 'hard' | 'expert';
 }
 
@@ -207,18 +247,6 @@ export interface QuizAttempt {
   totalPoints: number;
   completedAt: string;
   timeSpent: number;
-}
-
-// File Upload System
-export interface UploadedFile {
-  id: string;
-  filename: string;
-  originalName: string;
-  size: number;
-  type: string;
-  uploadedBy: string;
-  uploadedAt: string;
-  url: string;
 }
 
 // AI Assistant System
@@ -254,7 +282,7 @@ export interface AIResponse {
 // Activity Feed
 export interface Activity {
   id: string;
-  type: 'user_joined' | 'message_sent' | 'form_submitted' | 'song_uploaded' | 'event_created' | 'puzzle_solved' | 'group_created';
+  type: 'user_joined' | 'message_sent' | 'form_submitted' | 'song_uploaded' | 'event_created' | 'puzzle_solved' | 'group_created' | 'achievement_unlocked';
   userId: string;
   username: string;
   description: string;
@@ -275,6 +303,36 @@ export interface ApprovalRequest {
   rejectionReason?: string;
 }
 
+// Control Center Settings
+export interface PlatformSettings {
+  id: string;
+  darkModeEnabled: boolean;
+  challengesEnabled: boolean;
+  eventsEnabled: boolean;
+  avatarsEnabled: boolean;
+  uploadsEnabled: boolean;
+  quizzesEnabled: boolean;
+  aiAssistantEnabled: boolean;
+  globalChatEnabled: boolean;
+  registrationEnabled: boolean;
+  maintenanceMode: boolean;
+  updatedBy: string;
+  updatedAt: string;
+}
+
+// Achievement System
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: 'puzzle' | 'social' | 'music' | 'creative' | 'special';
+  condition: string;
+  points: number;
+  isSecret: boolean;
+  unlockedBy: string[];
+}
+
 // Global Stats
 export interface GlobalStats {
   totalUsers: number;
@@ -285,6 +343,19 @@ export interface GlobalStats {
   totalSongs: number;
   totalPuzzles: number;
   pendingApprovals: number;
+  totalAchievements: number;
+}
+
+// File Upload System
+export interface UploadedFile {
+  id: string;
+  filename: string;
+  originalName: string;
+  size: number;
+  type: string;
+  uploadedBy: string;
+  uploadedAt: string;
+  url: string;
 }
 
 // Real-time Socket Events
@@ -310,40 +381,10 @@ export interface SocketEvents {
   // Content events
   form_created: CustomForm;
   event_created: Event;
-  song_uploaded: SongUpload;
+  song_uploaded: AlanWalkerTrack;
   puzzle_created: Puzzle;
-}
-
-// News and Announcements (Enhanced)
-export interface NewsArticle {
-  id: string;
-  title: string;
-  content: string;
-  excerpt: string;
-  author: string;
-  publishedAt: string;
-  updatedAt?: string;
-  category: 'tech' | 'ai' | 'smartphone' | 'general' | 'alan_walker' | 'warrior_news';
-  isPublished: boolean;
-  views: number;
-  tags?: string[];
-  source?: string;
-  imageUrl?: string;
-  isAutoGenerated?: boolean;
-  isExpanded?: boolean;
-}
-
-export interface Announcement {
-  id: string;
-  title: string;
-  content: string;
-  type: 'info' | 'warning' | 'success' | 'urgent' | 'achievement' | 'news' | 'welcome';
-  author: string;
-  createdAt: string;
-  updatedAt?: string;
-  isActive: boolean;
-  priority: 'low' | 'medium' | 'high';
-  autoGenerated?: boolean;
-  relatedData?: any;
-  isExpanded?: boolean;
+  
+  // System events
+  settings_updated: PlatformSettings;
+  achievement_unlocked: { userId: string; achievementId: string };
 }

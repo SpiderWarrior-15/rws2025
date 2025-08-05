@@ -226,11 +226,11 @@ export const Home: React.FC = () => {
             <AnimatedButton
               variant="secondary"
               size="lg"
-              onClick={() => navigate('/music-hub')}
+              onClick={() => navigate('/alan-walkers')}
               className={`border-yellow-500/50 text-yellow-300 hover:bg-yellow-500/20 flex items-center gap-2`}
               icon={Music}
             >
-              Music Hub
+              Alan Walkers
             </AnimatedButton>
 
             <AnimatedButton

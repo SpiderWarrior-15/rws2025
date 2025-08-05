@@ -1,8 +1,8 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { User } from '../types';
+import { authService } from '../services/authService';
 import { fileService } from '../services/fileService';
 import { socketService } from '../services/socketService';
-import { v4 as uuidv4 } from 'uuid';
 
 interface AuthContextType {
   user: User | null;
@@ -11,9 +11,11 @@ interface AuthContextType {
   register: (username: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateUser: (id: string, updates: Partial<User>) => Promise<void>;
-  promoteUser: (id: string, role: 'commander' | 'warrior') => Promise<void>;
+  promoteUser: (id: string, role: 'admin' | 'user') => Promise<void>;
   banUser: (id: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
   isLoading: boolean;
+  error: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,38 +32,17 @@ export const useAuthProvider = () => {
   const [user, setUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Initialize with default admin user
+  // Initialize auth system
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        let allUsers = await fileService.getUsers();
+        // Initialize default admin
+        await authService.initializeDefaultAdmin();
         
-        // Create default admin if no users exist
-        if (allUsers.length === 0) {
-          const adminUser: User = {
-            id: uuidv4(),
-            username: 'Spider Warrior',
-            email: 'spiderwarrior15@gmail.com',
-            password: '2012_09_17',
-            role: 'admin',
-            joinedAt: new Date().toISOString(),
-            lastActive: new Date().toISOString(),
-            isOnline: true,
-            isBanned: false,
-            stats: {
-              messagesCount: 0,
-              formsSubmitted: 0,
-              eventsAttended: 0,
-              songsUploaded: 0,
-              puzzlesSolved: 0
-            }
-          };
-          
-          await fileService.saveUser(adminUser);
-          allUsers = [adminUser];
-        }
-        
+        // Load all users
+        const allUsers = await fileService.getUsers();
         setUsers(allUsers);
         
         // Check for saved session
@@ -70,7 +51,7 @@ export const useAuthProvider = () => {
           const savedUser = allUsers.find(u => u.id === savedUserId && !u.isBanned);
           if (savedUser) {
             setUser(savedUser);
-            await fileService.updateUser(savedUser.id, { 
+            await authService.updateUser(savedUser.id, { 
               isOnline: true, 
               lastActive: new Date().toISOString() 
             });
@@ -78,6 +59,7 @@ export const useAuthProvider = () => {
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
+        setError('Failed to initialize authentication');
       } finally {
         setIsLoading(false);
       }
@@ -87,97 +69,60 @@ export const useAuthProvider = () => {
   }, []);
 
   const login = async (usernameOrEmail: string, password: string): Promise<boolean> => {
+    setError(null);
     try {
-      const allUsers = await fileService.getUsers();
-      const foundUser = allUsers.find(u => 
-        (u.username.toLowerCase() === usernameOrEmail.toLowerCase() || 
-         u.email.toLowerCase() === usernameOrEmail.toLowerCase()) &&
-        u.password === password &&
-        !u.isBanned
-      );
-
-      if (foundUser) {
-        const updatedUser = {
-          ...foundUser,
-          isOnline: true,
-          lastActive: new Date().toISOString()
-        };
-        
-        await fileService.updateUser(foundUser.id, { 
-          isOnline: true, 
-          lastActive: new Date().toISOString() 
-        });
-        
-        setUser(updatedUser);
-        localStorage.setItem('rws-current-user-id', foundUser.id);
+      const result = await authService.login(usernameOrEmail, password);
+      
+      if (result.success && result.user) {
+        setUser(result.user);
+        localStorage.setItem('rws-current-user-id', result.user.id);
         
         // Emit user online event
-        socketService.emit('user_online', { userId: foundUser.id });
+        socketService.emit('user_online', { userId: result.user.id });
         
         return true;
+      } else {
+        setError(result.error || 'Login failed');
+        return false;
       }
-      return false;
     } catch (error) {
       console.error('Login error:', error);
+      setError('Login failed');
       return false;
     }
   };
 
   const register = async (username: string, email: string, password: string): Promise<boolean> => {
+    setError(null);
     try {
-      const allUsers = await fileService.getUsers();
+      const result = await authService.register(username, email, password);
       
-      // Check if username or email already exists
-      const existingUser = allUsers.find(u => 
-        u.username.toLowerCase() === username.toLowerCase() || 
-        u.email.toLowerCase() === email.toLowerCase()
-      );
-      
-      if (existingUser) {
+      if (result.success && result.user) {
+        setUser(result.user);
+        localStorage.setItem('rws-current-user-id', result.user.id);
+        
+        // Update users list
+        const updatedUsers = await fileService.getUsers();
+        setUsers(updatedUsers);
+        
+        // Emit user joined event
+        socketService.emit('user_joined', result.user);
+        
+        return true;
+      } else {
+        setError(result.error || 'Registration failed');
         return false;
       }
-
-      const newUser: User = {
-        id: uuidv4(),
-        username: username.trim(),
-        email: email.toLowerCase().trim(),
-        password: password,
-        role: 'warrior',
-        joinedAt: new Date().toISOString(),
-        lastActive: new Date().toISOString(),
-        isOnline: true,
-        isBanned: false,
-        stats: {
-          messagesCount: 0,
-          formsSubmitted: 0,
-          eventsAttended: 0,
-          songsUploaded: 0,
-          puzzlesSolved: 0
-        }
-      };
-
-      await fileService.saveUser(newUser);
-      setUser(newUser);
-      setUsers([...allUsers, newUser]);
-      localStorage.setItem('rws-current-user-id', newUser.id);
-      
-      // Emit user joined event
-      socketService.emit('user_joined', newUser);
-      
-      return true;
     } catch (error) {
       console.error('Registration error:', error);
+      setError('Registration failed');
       return false;
     }
   };
 
   const logout = async () => {
     if (user) {
-      await fileService.updateUser(user.id, { 
-        isOnline: false, 
-        lastActive: new Date().toISOString() 
-      });
-      
+      await authService.logout();
       socketService.emit('user_offline', { userId: user.id });
     }
     
@@ -186,7 +131,7 @@ export const useAuthProvider = () => {
   };
 
   const updateUser = async (id: string, updates: Partial<User>) => {
-    await fileService.updateUser(id, updates);
+    await authService.updateUser(id, updates);
     const updatedUsers = await fileService.getUsers();
     setUsers(updatedUsers);
     
@@ -195,12 +140,32 @@ export const useAuthProvider = () => {
     }
   };
 
-  const promoteUser = async (id: string, role: 'commander' | 'warrior') => {
+  const promoteUser = async (id: string, role: 'admin' | 'user') => {
     await updateUser(id, { role });
   };
 
   const banUser = async (id: string) => {
     await updateUser(id, { isBanned: true, isOnline: false });
+  };
+
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
+    if (!user) return false;
+    
+    setError(null);
+    try {
+      const result = await authService.changePassword(user.id, currentPassword, newPassword);
+      
+      if (result.success) {
+        return true;
+      } else {
+        setError(result.error || 'Password change failed');
+        return false;
+      }
+    } catch (error) {
+      console.error('Password change error:', error);
+      setError('Password change failed');
+      return false;
+    }
   };
 
   return {
@@ -212,7 +177,9 @@ export const useAuthProvider = () => {
     updateUser,
     promoteUser,
     banUser,
-    isLoading
+    changePassword,
+    isLoading,
+    error
   };
 };
 
