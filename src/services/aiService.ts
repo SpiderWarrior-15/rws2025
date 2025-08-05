@@ -1,44 +1,3 @@
-import React, { useEffect, useRef } from 'react';
-
-const Aiservice = ({ messages }) => {
-  const scrollRef = useRef(null);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-      }
-    }, 300);
-
-    return () => clearInterval(interval);
-  }, [messages]);
-
-  return (
-    <div
-      ref={scrollRef}
-      style={{
-        height: '400px',
-        overflowY: 'auto',
-        padding: '1rem',
-        border: '1px solid #444',
-        borderRadius: '10px',
-        backgroundColor: '#111',
-      }}
-    >
-      {messages.map((msg, index) => (
-        <div key={index} style={{ marginBottom: '1rem', color: 'white' }}>
-          {msg}
-        </div>
-      ))}
-    </div>
-  );
-};
-
-export default Aiservice;
-
-// ============================
-// AI SERVICE BACKEND SECTION
-// ============================
 import { AIModel, AITrainingData, AIResponse } from '../types';
 import { fileService } from './fileService';
 import { v4 as uuidv4 } from 'uuid';
@@ -54,6 +13,7 @@ class AIService {
     let model = await fileService.getAIModel();
 
     if (!model) {
+      // Create default AI model
       model = {
         id: uuidv4(),
         name: 'AI Assistant',
