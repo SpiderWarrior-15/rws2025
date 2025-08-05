@@ -150,7 +150,7 @@ const Login: React.FC = () => {
                     <span className="text-gray-800 dark:text-white font-medium">Admin</span>
                   </div>
                   <div className="text-gray-600 dark:text-gray-400">
-                    Spider Warrior / 2012_09_17
+                    Spider Warrior
                   </div>
                 </div>
                 <div className="flex items-center justify-between p-2 bg-white/5 rounded">
