@@ -25,6 +25,8 @@ import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { License } from './pages/License';
 import { WarriorDashboard } from './pages/WarriorDashboard';
 import { ControlCenter } from './pages/ControlCenter';
+import { AdminDashboard } from './pages/AdminDashboard';
+import { Friends } from './pages/Friends';
 import { AIAssistant } from './components/AIAssistant';
 
 function AppContent() {
@@ -49,6 +51,14 @@ function AppContent() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/chat" element={<ChatPage />} />
           <Route
+            path="/friends"
+            element={
+              <ProtectedRoute>
+                <Friends />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/dashboard"
             element={
               <ProtectedRoute>
@@ -71,6 +81,14 @@ function AppContent() {
             element={
               <ProtectedRoute requireAdmin>
                 <ControlCenter />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute requireAdmin>
+                <AdminDashboard />
               </ProtectedRoute>
             }
           />

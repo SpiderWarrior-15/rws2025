@@ -10,8 +10,111 @@ export interface User {
   lastActive: string;
   isOnline: boolean;
   isBanned: boolean;
+  bio?: string;
+  location?: string;
+  level: number;
+  xp: number;
+  achievements: string[];
+  activityLog: ActivityEntry[];
   stats: UserStats;
   preferences: UserPreferences;
+}
+
+// Friending System
+export interface FriendRequest {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Friendship {
+  id: string;
+  userId1: string;
+  userId2: string;
+  createdAt: string;
+}
+
+export interface ActivityEntry {
+  id: string;
+  description: string;
+  timestamp: string;
+  xpGained?: number;
+  type: 'upload' | 'puzzle' | 'event' | 'friend' | 'achievement';
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: 'friend_request' | 'friend_accepted' | 'upload_approved' | 'event' | 'achievement' | 'system';
+  read: boolean;
+  timestamp: string;
+  actionUrl?: string;
+}
+
+// Admin Dashboard Types
+export interface AdminAction {
+  id: string;
+  adminId: string;
+  action: string;
+  targetType: 'user' | 'upload' | 'puzzle' | 'event' | 'form';
+  targetId: string;
+  details: string;
+  timestamp: string;
+}
+
+export interface SystemSettings {
+  id: string;
+  darkModeDefault: boolean;
+  maintenanceMode: boolean;
+  registrationEnabled: boolean;
+  uploadsEnabled: boolean;
+  puzzlesEnabled: boolean;
+  eventsEnabled: boolean;
+  chatEnabled: boolean;
+  aiAssistantEnabled: boolean;
+  welcomeMessage: string;
+  maxFileSize: number;
+  allowedFileTypes: string[];
+  updatedBy: string;
+  updatedAt: string;
+}
+
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  timestamp: string;
+  isRead: boolean;
+  adminReply?: string;
+  repliedAt?: string;
+  repliedBy?: string;
+  priority: 'low' | 'medium' | 'high';
+  category: 'general' | 'bug' | 'feature' | 'support';
+}
+
+export interface UploadSubmission {
+  id: string;
+  userId: string;
+  title: string;
+  artist: string;
+  fileName: string;
+  fileSize: number;
+  fileType: string;
+  description?: string;
+  category: 'official' | 'remix' | 'cover' | 'original';
+  status: 'pending' | 'approved' | 'rejected';
+  submittedAt: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  rejectionReason?: string;
+  downloadUrl?: string;
 }
 
 export interface UserAvatar {

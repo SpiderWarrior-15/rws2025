@@ -304,6 +304,7 @@ export const Navigation: React.FC = () => {
                       
                       {/* Admin Panel - Only show for admin users */}
                       {user?.accountType === 'admin' && (
+                        <>
                         <Link
                           to="/control-center"
                           onClick={() => setIsUserMenuOpen(false)}
@@ -312,7 +313,25 @@ export const Navigation: React.FC = () => {
                           <Crown className="w-4 h-4" />
                           <span>Control Center</span>
                         </Link>
+                        <Link
+                          to="/admin"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="w-full flex items-center space-x-2 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-white/10 dark:hover:bg-gray-800/50 transition-colors duration-300"
+                        >
+                          <Shield className="w-4 h-4" />
+                          <span>Admin Dashboard</span>
+                        </Link>
+                        </>
                       )}
+                      
+                      <Link
+                        to="/friends"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="w-full flex items-center space-x-2 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-white/10 dark:hover:bg-gray-800/50 transition-colors duration-300"
+                      >
+                        <Users className="w-4 h-4" />
+                        <span>Friends</span>
+                      </Link>
                       
                       <Link
                         to="/dashboard"
@@ -439,6 +458,7 @@ export const Navigation: React.FC = () => {
                       
                       {/* Admin Panel for mobile - Only show for admin users */}
                       {user?.accountType === 'admin' && (
+                        <>
                         <Link
                           to="/control-center"
                           onClick={closeMobileMenu}
@@ -446,7 +466,23 @@ export const Navigation: React.FC = () => {
                         >
                           Control Center
                         </Link>
+                        <Link
+                          to="/admin"
+                          onClick={closeMobileMenu}
+                          className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-white/10 dark:hover:bg-gray-800/50 transition-all duration-300"
+                        >
+                          Admin Dashboard
+                        </Link>
+                        </>
                       )}
+                      
+                      <Link
+                        to="/friends"
+                        onClick={closeMobileMenu}
+                        className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-white/10 dark:hover:bg-gray-800/50 transition-all duration-300"
+                      >
+                        Friends
+                      </Link>
                       
                       <Link
                         to="/dashboard"
