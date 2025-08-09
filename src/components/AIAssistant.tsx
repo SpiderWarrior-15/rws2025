@@ -4,7 +4,8 @@ import { Bot, Send, Minimize2, Maximize2, HelpCircle, Zap, Music, Users, Calenda
 import { GlassCard } from './GlassCard';
 import { AnimatedButton } from './AnimatedButton';
 import { useAuth } from '../hooks/useAuth';
-import { aiService } from '../services/aiService';
+import { openaiService } from '../services/openaiService';
+import { ScrollableContainer } from './ScrollableContainer';
 
 interface AIMessage {
   id: string;
@@ -56,7 +57,8 @@ export const AIAssistant: React.FC = () => {
     setIsTyping(true);
 
     try {
-      const response = await aiService.processCommand(currentMessage, user.id);
+      const systemPrompt = `You are an AI assistant for the Royal Warriors Squad platform. You help users navigate the platform, answer questions about Alan Walker, and provide guidance on features. Be helpful, friendly, and knowledgeable about music, technology, and community features.`;
+      const response = await openaiService.generateResponse(currentMessage, `User: ${user.username}, Role: ${user.role}`, systemPrompt);
       
       setTimeout(() => {
         const aiMessage: AIMessage = {
@@ -71,6 +73,13 @@ export const AIAssistant: React.FC = () => {
       }, 1000);
     } catch (error) {
       console.error('AI response error:', error);
+      const aiMessage: AIMessage = {
+        id: (Date.now() + 1).toString(),
+        content: "I'm having trouble connecting right now. Please try again later or contact an admin for assistance.",
+        isUser: false,
+        timestamp: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, aiMessage]);
       setIsTyping(false);
     }
   };
@@ -147,7 +156,8 @@ export const AIAssistant: React.FC = () => {
               {!isMinimized && (
                 <>
                   {/* Messages */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  <ScrollableContainer maxHeight="300px" autoScroll className="p-4">
+                    <div className="space-y-4">
                     {messages.map(message => (
                       <motion.div
                         key={message.id}
@@ -161,6 +171,9 @@ export const AIAssistant: React.FC = () => {
                             : 'bg-white/10 text-gray-800 dark:text-white'
                         }`}>
                           <p className="text-sm">{message.content}</p>
+                          <p className="text-xs opacity-75 mt-1">
+                            {new Date(message.timestamp).toLocaleTimeString()}
+                          </p>
                         </div>
                       </motion.div>
                     ))}
@@ -180,7 +193,8 @@ export const AIAssistant: React.FC = () => {
                         </div>
                       </motion.div>
                     )}
-                  </div>
+                    </div>
+                  </ScrollableContainer>
 
                   {/* Suggested Prompts */}
                   {messages.length === 1 && (

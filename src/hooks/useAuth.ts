@@ -7,7 +7,7 @@ import { socketService } from '../services/socketService';
 interface AuthContextType {
   user: User | null;
   users: User[];
-  login: (usernameOrEmail: string, password: string) => Promise<boolean>;
+  login: (usernameOrEmail: string, password: string, provider?: string) => Promise<boolean>;
   register: (username: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateUser: (id: string, updates: Partial<User>) => Promise<void>;
@@ -68,10 +68,10 @@ export const useAuthProvider = () => {
     initializeAuth();
   }, []);
 
-  const login = async (usernameOrEmail: string, password: string): Promise<boolean> => {
+  const login = async (usernameOrEmail: string, password: string, provider?: string): Promise<boolean> => {
     setError(null);
     try {
-      const result = await authService.login(usernameOrEmail, password);
+      const result = await authService.login(usernameOrEmail, password, provider);
       
       if (result.success && result.user) {
         setUser(result.user);

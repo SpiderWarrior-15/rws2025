@@ -5,6 +5,7 @@ import { User, Mail, Lock, Eye, EyeOff, UserPlus, AlertCircle, CheckCircle } fro
 import { GlassCard } from '../components/GlassCard';
 import { AnimatedButton } from '../components/AnimatedButton';
 import { useAuth } from '../hooks/useAuth';
+import { GoogleSignIn } from '../components/GoogleSignIn';
 
 export const SignUp: React.FC = () => {
   const navigate = useNavigate();
@@ -232,6 +233,25 @@ export const SignUp: React.FC = () => {
                 {isLoading ? 'Creating Account...' : 'Join the Squad'}
               </AnimatedButton>
             </form>
+
+            {/* Google Sign-In */}
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white/10 text-gray-500">Or continue with</span>
+                </div>
+              </div>
+              
+              <div className="mt-6">
+                <GoogleSignIn
+                  onSuccess={() => navigate('/dashboard')}
+                  onError={(error) => setSignupError(error)}
+                />
+              </div>
+            </div>
 
             {/* Sign In Link */}
             <div className="mt-6 text-center">

@@ -1,30 +1,56 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Plus, Edit, Trash2, Users, Calendar, BarChart3, Eye, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import { FileText, Plus, Edit, Trash2, Users, Calendar, BarChart3, Eye, Send, CheckCircle, AlertCircle, Download, Filter } from 'lucide-react';
 import { GlassCard } from '../components/GlassCard';
 import { AnimatedButton } from '../components/AnimatedButton';
+import { ScrollableContainer } from '../components/ScrollableContainer';
+import { FormBuilder } from '../components/FormBuilder';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useAuth } from '../hooks/useAuth';
-import { useSounds } from '../hooks/useSounds';
+import { useRealtime } from '../contexts/RealtimeContext';
 import { CustomForm, FormSubmission, FormField } from '../types';
 import { format } from 'date-fns';
+import toast from 'react-hot-toast';
+import { v4 as uuidv4 } from 'uuid';
 
 export const Forms: React.FC = () => {
   const { user } = useAuth();
-  const { playSound } = useSounds();
+  const { broadcastUpdate } = useRealtime();
   const [forms, setForms] = useLocalStorage<CustomForm[]>('rws-forms', []);
   const [submissions, setSubmissions] = useLocalStorage<FormSubmission[]>('rws-form-submissions', []);
-  const [activeTab, setActiveTab] = useState<'available' | 'my-submissions'>('available');
+  const [activeTab, setActiveTab] = useState<'available' | 'my-submissions' | 'admin'>('available');
   const [selectedForm, setSelectedForm] = useState<CustomForm | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFormBuilderOpen, setIsFormBuilderOpen] = useState(false);
+  const [editingForm, setEditingForm] = useState<CustomForm | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const isAdmin = user?.accountType === 'admin';
-  const availableForms = forms.filter(form => form.isActive);
+  const isAdmin = user?.role === 'admin';
+  const availableForms = forms.filter(form => 
+    form.isActive && 
+    form.isApproved &&
+    (selectedCategory === 'all' || form.category === selectedCategory) &&
+    (searchQuery === '' || form.title.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
   const userSubmissions = submissions.filter(sub => sub.userId === user?.id);
 
+  const categories = [
+    { id: 'all', name: 'All Forms' },
+    { id: 'event', name: 'Events' },
+    { id: 'survey', name: 'Surveys' },
+    { id: 'feedback', name: 'Feedback' },
+    { id: 'registration', name: 'Registration' },
+    { id: 'quiz', name: 'Quizzes' },
+    { id: 'other', name: 'Other' }
+  ];
+
   const handleFormSubmit = async (form: CustomForm) => {
-    if (!user) return;
+    if (!user) {
+      toast.error('Please sign in to submit forms');
+      return;
+    }
 
     setIsSubmitting(true);
     
@@ -35,7 +61,7 @@ export const Forms: React.FC = () => {
         .map(field => field.label);
 
       if (missingFields.length > 0) {
-        alert(`Please fill in required fields: ${missingFields.join(', ')}`);
+        toast.error(`Please fill in required fields: ${missingFields.join(', ')}`);
         setIsSubmitting(false);
         return;
       }
@@ -46,34 +72,131 @@ export const Forms: React.FC = () => {
           sub => sub.formId === form.id && sub.userId === user.id
         );
         if (existingSubmission) {
-          alert('You have already submitted this form.');
+          toast.error('You have already submitted this form.');
           setIsSubmitting(false);
           return;
         }
       }
 
       const submission: FormSubmission = {
-        id: Date.now().toString(),
+        id: uuidv4(),
         formId: form.id,
         userId: user.id,
-        userName: user.name,
-        userEmail: user.email,
+        username: user.username,
         responses: { ...formData },
         submittedAt: new Date().toISOString(),
+        ipAddress: 'localhost' // In production, get real IP
       };
 
       setSubmissions([...submissions, submission]);
       setFormData({});
       setSelectedForm(null);
-      playSound('success');
-      alert('Form submitted successfully!');
+      
+      // Update user stats
+      const updatedUser = {
+        ...user,
+        stats: {
+          ...user.stats,
+          formsSubmitted: user.stats.formsSubmitted + 1
+        },
+        activityLog: [
+          ...user.activityLog,
+          {
+            id: uuidv4(),
+            description: `Submitted form: ${form.title}`,
+            timestamp: new Date().toISOString(),
+            xpGained: 5,
+            type: 'form' as const
+          }
+        ]
+      };
+
+      // Broadcast update
+      broadcastUpdate('form_submitted', { formId: form.id, userId: user.id });
+      
+      toast.success('Form submitted successfully!');
     } catch (error) {
       console.error('Form submission error:', error);
-      alert('Error submitting form. Please try again.');
-      playSound('error');
+      toast.error('Error submitting form. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSaveForm = (formData: Omit<CustomForm, 'id' | 'createdAt' | 'createdBy'>) => {
+    if (editingForm) {
+      const updatedForm = {
+        ...editingForm,
+        ...formData,
+        updatedAt: new Date().toISOString()
+      };
+      setForms(forms.map(f => f.id === editingForm.id ? updatedForm : f));
+      toast.success('Form updated successfully!');
+    } else {
+      const newForm: CustomForm = {
+        ...formData,
+        id: uuidv4(),
+        createdBy: user?.id || 'admin',
+        createdAt: new Date().toISOString()
+      };
+      setForms([...forms, newForm]);
+      toast.success('Form created successfully!');
+    }
+    
+    setIsFormBuilderOpen(false);
+    setEditingForm(null);
+    broadcastUpdate('form_created', { formId: editingForm?.id || 'new' });
+  };
+
+  const handleDeleteForm = (formId: string) => {
+    if (window.confirm('Are you sure you want to delete this form? This action cannot be undone.')) {
+      setForms(forms.filter(f => f.id !== formId));
+      // Also remove related submissions
+      setSubmissions(submissions.filter(s => s.formId !== formId));
+      toast.success('Form deleted successfully');
+      broadcastUpdate('form_deleted', { formId });
+    }
+  };
+
+  const handleToggleForm = (formId: string) => {
+    setForms(forms.map(f => 
+      f.id === formId ? { ...f, isActive: !f.isActive } : f
+    ));
+    const form = forms.find(f => f.id === formId);
+    toast.success(`Form ${form?.isActive ? 'deactivated' : 'activated'}`);
+  };
+
+  const exportSubmissions = (formId: string) => {
+    const form = forms.find(f => f.id === formId);
+    const formSubmissions = submissions.filter(s => s.formId === formId);
+    
+    if (!form || formSubmissions.length === 0) {
+      toast.error('No submissions to export');
+      return;
+    }
+
+    const csvContent = [
+      // Header
+      ['Submitted At', 'Username', ...form.fields.map(f => f.label)].join(','),
+      // Data rows
+      ...formSubmissions.map(sub => [
+        format(new Date(sub.submittedAt), 'yyyy-MM-dd HH:mm:ss'),
+        sub.username,
+        ...form.fields.map(f => {
+          const value = sub.responses[f.id];
+          return Array.isArray(value) ? value.join('; ') : String(value || '');
+        })
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${form.title.replace(/[^a-zA-Z0-9]/g, '_')}_submissions.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Submissions exported successfully!');
   };
 
   const renderFormField = (field: FormField) => {
@@ -88,9 +211,11 @@ export const Forms: React.FC = () => {
             type={field.type}
             value={value}
             onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
-            className="w-full px-4 py-3 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800 dark:text-white"
+            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-800 dark:text-white"
             placeholder={field.placeholder}
             required={field.required}
+            minLength={field.validation?.minLength}
+            maxLength={field.validation?.maxLength}
           />
         );
 
@@ -99,10 +224,12 @@ export const Forms: React.FC = () => {
           <textarea
             value={value}
             onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
-            className="w-full px-4 py-3 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800 dark:text-white resize-none"
+            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-800 dark:text-white resize-none"
             rows={4}
             placeholder={field.placeholder}
             required={field.required}
+            minLength={field.validation?.minLength}
+            maxLength={field.validation?.maxLength}
           />
         );
 
@@ -111,7 +238,7 @@ export const Forms: React.FC = () => {
           <select
             value={value}
             onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
-            className="w-full px-4 py-3 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800 dark:text-white"
+            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-800 dark:text-white"
             required={field.required}
           >
             <option value="">Select an option</option>
@@ -173,7 +300,7 @@ export const Forms: React.FC = () => {
             type="date"
             value={value}
             onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
-            className="w-full px-4 py-3 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800 dark:text-white"
+            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-800 dark:text-white"
             required={field.required}
           />
         );
@@ -188,7 +315,7 @@ export const Forms: React.FC = () => {
                 setFormData({ ...formData, [field.id]: file.name });
               }
             }}
-            className="w-full px-4 py-3 bg-white/10 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800 dark:text-white"
+            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-800 dark:text-white"
             required={field.required}
           />
         );
@@ -237,13 +364,13 @@ export const Forms: React.FC = () => {
 
         {/* Navigation Tabs */}
         <div className="flex justify-center mb-8">
-          <div className="flex bg-white/10 dark:bg-gray-800/50 backdrop-blur-md rounded-lg p-1">
+          <div className="flex bg-white/10 backdrop-blur-md rounded-lg p-1">
             <button
               onClick={() => setActiveTab('available')}
               className={`px-6 py-2 rounded-md text-sm font-medium transition-all duration-300 ${
                 activeTab === 'available'
                   ? 'bg-gradient-to-r from-green-600 to-blue-600 text-white'
-                  : 'text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400'
+                  : 'text-gray-700 dark:text-gray-300 hover:text-green-600'
               }`}
             >
               <FileText className="w-4 h-4 inline mr-2" />
@@ -254,14 +381,54 @@ export const Forms: React.FC = () => {
               className={`px-6 py-2 rounded-md text-sm font-medium transition-all duration-300 ${
                 activeTab === 'my-submissions'
                   ? 'bg-gradient-to-r from-green-600 to-blue-600 text-white'
-                  : 'text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400'
+                  : 'text-gray-700 dark:text-gray-300 hover:text-green-600'
               }`}
             >
               <CheckCircle className="w-4 h-4 inline mr-2" />
-              My Submissions
+              My Submissions ({userSubmissions.length})
             </button>
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab('admin')}
+                className={`px-6 py-2 rounded-md text-sm font-medium transition-all duration-300 ${
+                  activeTab === 'admin'
+                    ? 'bg-gradient-to-r from-green-600 to-blue-600 text-white'
+                    : 'text-gray-700 dark:text-gray-300 hover:text-green-600'
+                }`}
+              >
+                <Users className="w-4 h-4 inline mr-2" />
+                Admin Panel
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Filters */}
+        {activeTab === 'available' && (
+          <div className="flex flex-wrap justify-center gap-4 mb-8">
+            <div className="flex items-center space-x-2">
+              <Filter className="w-4 h-4 text-gray-500" />
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-gray-800 dark:text-white text-sm"
+              >
+                {categories.map(category => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-gray-800 dark:text-white text-sm"
+              placeholder="Search forms..."
+            />
+          </div>
+        )}
 
         {/* Available Forms */}
         {activeTab === 'available' && (
@@ -298,7 +465,7 @@ export const Forms: React.FC = () => {
                     {form.description}
                   </p>
 
-                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  <div className="text-sm text-gray-500 mb-4">
                     {form.fields.length} fields • Created {format(new Date(form.createdAt), 'MMM dd, yyyy')}
                   </div>
 
@@ -308,7 +475,6 @@ export const Forms: React.FC = () => {
                     icon={Eye}
                     onClick={() => setSelectedForm(form)}
                     className="w-full"
-                    soundType="click"
                   >
                     Fill Form
                   </AnimatedButton>
@@ -342,7 +508,7 @@ export const Forms: React.FC = () => {
                       if (!field) return null;
 
                       return (
-                        <div key={fieldId} className="p-3 bg-white/5 dark:bg-gray-800/20 rounded-lg">
+                        <div key={fieldId} className="p-3 bg-white/5 rounded-lg">
                           <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             {field.label}
                           </div>
@@ -363,13 +529,123 @@ export const Forms: React.FC = () => {
                 <h3 className="text-xl font-medium text-gray-600 dark:text-gray-400 mb-2">
                   No submissions yet
                 </h3>
-                <p className="text-gray-500 dark:text-gray-500">
+                <p className="text-gray-500">
                   Fill out some forms to see your submissions here
                 </p>
               </div>
             )}
           </div>
         )}
+
+        {/* Admin Panel */}
+        {activeTab === 'admin' && isAdmin && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                Form Management
+              </h2>
+              <AnimatedButton
+                variant="primary"
+                icon={Plus}
+                onClick={() => setIsFormBuilderOpen(true)}
+              >
+                Create Form
+              </AnimatedButton>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {forms.map(form => {
+                const formSubmissions = submissions.filter(s => s.formId === form.id);
+                return (
+                  <GlassCard key={form.id} className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        form.category === 'event' ? 'bg-purple-500/20 text-purple-400' :
+                        form.category === 'survey' ? 'bg-blue-500/20 text-blue-400' :
+                        form.category === 'feedback' ? 'bg-green-500/20 text-green-400' :
+                        'bg-gray-500/20 text-gray-400'
+                      }`}>
+                        {form.category.toUpperCase()}
+                      </span>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleToggleForm(form.id)}
+                          className={`p-2 rounded-lg transition-colors ${
+                            form.isActive
+                              ? 'bg-green-500/20 text-green-400'
+                              : 'bg-gray-500/20 text-gray-400'
+                          }`}
+                        >
+                          {form.isActive ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingForm(form);
+                            setIsFormBuilderOpen(true);
+                          }}
+                          className="p-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteForm(form.id)}
+                          className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-2">
+                      {form.title}
+                    </h3>
+                    
+                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                      {form.description}
+                    </p>
+
+                    <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                      <span>{form.fields.length} fields</span>
+                      <span>{formSubmissions.length} submissions</span>
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <AnimatedButton
+                        variant="secondary"
+                        size="sm"
+                        icon={BarChart3}
+                        className="flex-1"
+                      >
+                        Analytics
+                      </AnimatedButton>
+                      {formSubmissions.length > 0 && (
+                        <AnimatedButton
+                          variant="secondary"
+                          size="sm"
+                          icon={Download}
+                          onClick={() => exportSubmissions(form.id)}
+                        >
+                          Export
+                        </AnimatedButton>
+                      )}
+                    </div>
+                  </GlassCard>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Form Builder Modal */}
+        <FormBuilder
+          isOpen={isFormBuilderOpen}
+          onClose={() => {
+            setIsFormBuilderOpen(false);
+            setEditingForm(null);
+          }}
+          onSave={handleSaveForm}
+          editingForm={editingForm}
+        />
 
         {/* Form Modal */}
         {selectedForm && (
@@ -390,9 +666,9 @@ export const Forms: React.FC = () => {
                       setSelectedForm(null);
                       setFormData({});
                     }}
-                    className="p-2 hover:bg-white/10 dark:hover:bg-gray-800/50 rounded-lg transition-colors duration-300"
+                    className="p-2 hover:bg-white/10 rounded-lg transition-colors"
                   >
-                    <AlertCircle className="w-5 h-5 text-gray-500" />
+                    ✕
                   </button>
                 </div>
 
@@ -417,7 +693,6 @@ export const Forms: React.FC = () => {
                       icon={Send}
                       disabled={isSubmitting}
                       className="flex-1"
-                      soundType="success"
                     >
                       {isSubmitting ? 'Submitting...' : 'Submit Form'}
                     </AnimatedButton>
@@ -427,7 +702,6 @@ export const Forms: React.FC = () => {
                         setSelectedForm(null);
                         setFormData({});
                       }}
-                      soundType="click"
                     >
                       Cancel
                     </AnimatedButton>
@@ -444,8 +718,8 @@ export const Forms: React.FC = () => {
             <h3 className="text-xl font-medium text-gray-600 dark:text-gray-400 mb-2">
               No forms available
             </h3>
-            <p className="text-gray-500 dark:text-gray-500">
-              Check back later for new forms and surveys
+            <p className="text-gray-500">
+              {searchQuery ? `No forms found matching "${searchQuery}"` : 'Check back later for new forms and surveys'}
             </p>
           </div>
         )}

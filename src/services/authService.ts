@@ -129,7 +129,7 @@ class AuthService {
     }
   }
 
-  public async login(usernameOrEmail: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> {
+  public async login(usernameOrEmail: string, password: string, provider?: string): Promise<{ success: boolean; user?: User; error?: string }> {
     try {
       const users = await fileService.getUsers();
       
@@ -147,10 +147,12 @@ class AuthService {
         return { success: false, error: 'Account has been banned' };
       }
 
-      // Verify password
-      const isValidPassword = await bcrypt.compare(password, user.password);
-      if (!isValidPassword) {
-        return { success: false, error: 'Invalid password' };
+      // Verify password (skip for Google users)
+      if (provider !== 'google') {
+        const isValidPassword = await bcrypt.compare(password, user.password);
+        if (!isValidPassword) {
+          return { success: false, error: 'Invalid password' };
+        }
       }
 
       // Update user status
