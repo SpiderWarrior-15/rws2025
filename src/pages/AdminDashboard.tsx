@@ -34,8 +34,10 @@ import { GlassCard } from '../components/GlassCard';
 import { AnimatedButton } from '../components/AnimatedButton';
 import { ScrollableContainer } from '../components/ScrollableContainer';
 import { FileUploadZone } from '../components/FileUploadZone';
+import { FormBuilder } from '../components/FormBuilder';
 import { useAuth } from '../hooks/useAuth';
 import { dataService } from '../services/dataService';
+import { openaiService } from '../services/openaiService';
 import { 
   User, 
   ContactMessage, 
@@ -47,7 +49,8 @@ import {
   UploadSubmission,
   AdminAction,
   SystemSettings,
-  Notification
+  Notification,
+  AITrainingData
 } from '../types';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -55,7 +58,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 export const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'messages' | 'puzzles' | 'forms' | 'events' | 'uploads' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'messages' | 'puzzles' | 'forms' | 'events' | 'uploads' | 'ai' | 'settings'>('overview');
   const [users, setUsers] = useState<User[]>([]);
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
   const [puzzles, setPuzzles] = useState<Puzzle[]>([]);
@@ -65,9 +68,19 @@ export const AdminDashboard: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [uploads, setUploads] = useState<UploadSubmission[]>([]);
   const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
+  const [aiTrainingData, setAiTrainingData] = useState<AITrainingData[]>([]);
+  const [isFormBuilderOpen, setIsFormBuilderOpen] = useState(false);
+  const [editingForm, setEditingForm] = useState<CustomForm | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isEditingUser, setIsEditingUser] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiResponse, setAiResponse] = useState('');
+  const [newTrainingData, setNewTrainingData] = useState({
+    prompt: '',
+    response: '',
+    category: 'general'
+  });
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -100,7 +113,8 @@ export const AdminDashboard: React.FC = () => {
         allSubmissions,
         allEvents,
         allUploads,
-        settings
+        settings,
+        aiData
       ] = await Promise.all([
         dataService.getUsers(),
         dataService.getContactMessages(),
@@ -110,7 +124,8 @@ export const AdminDashboard: React.FC = () => {
         dataService.getFormSubmissions(),
         dataService.getEvents(),
         dataService.getUploadSubmissions(),
-        dataService.getSystemSettings()
+        dataService.getSystemSettings(),
+        dataService.getAITrainingData()
       ]);
 
       setUsers(allUsers);
@@ -122,6 +137,7 @@ export const AdminDashboard: React.FC = () => {
       setEvents(allEvents);
       setUploads(allUploads);
       setSystemSettings(settings);
+      setAiTrainingData(aiData);
 
       // Calculate stats
       setStats({
@@ -286,6 +302,82 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handleAICommand = async () => {
+    if (!aiPrompt.trim()) return;
+
+    try {
+      const response = await openaiService.generateResponse(
+        aiPrompt,
+        `Admin: ${user?.username}, Platform: Royal Warriors Squad`,
+        'You are an AI assistant helping an admin manage the Royal Warriors Squad platform. Provide helpful, actionable responses for admin tasks.'
+      );
+      setAiResponse(response);
+      setAiPrompt('');
+      toast.success('AI response generated');
+    } catch (error) {
+      console.error('AI command error:', error);
+      toast.error('Failed to get AI response');
+    }
+  };
+
+  const handleTrainAI = async () => {
+    if (!newTrainingData.prompt || !newTrainingData.response) {
+      toast.error('Please provide both prompt and response');
+      return;
+    }
+
+    try {
+      const trainingEntry: AITrainingData = {
+        id: uuidv4(),
+        prompt: newTrainingData.prompt,
+        response: newTrainingData.response,
+        category: newTrainingData.category,
+        addedBy: user?.id || 'admin',
+        addedAt: new Date().toISOString()
+      };
+
+      await dataService.saveAITrainingData(trainingEntry);
+      setAiTrainingData([...aiTrainingData, trainingEntry]);
+      setNewTrainingData({ prompt: '', response: '', category: 'general' });
+      toast.success('AI training data added successfully');
+    } catch (error) {
+      console.error('AI training error:', error);
+      toast.error('Failed to add training data');
+    }
+  };
+
+  const handleSaveForm = (formData: Omit<CustomForm, 'id' | 'createdAt' | 'createdBy'>) => {
+    if (editingForm) {
+      const updatedForm = {
+        ...editingForm,
+        ...formData,
+        updatedAt: new Date().toISOString()
+      };
+      setForms(forms.map(f => f.id === editingForm.id ? updatedForm : f));
+      toast.success('Form updated successfully!');
+    } else {
+      const newForm: CustomForm = {
+        ...formData,
+        id: uuidv4(),
+        createdBy: user?.id || 'admin',
+        createdAt: new Date().toISOString()
+      };
+      setForms([...forms, newForm]);
+      toast.success('Form created successfully!');
+    }
+    
+    setIsFormBuilderOpen(false);
+    setEditingForm(null);
+  };
+
+  const handleDeleteForm = (formId: string) => {
+    if (window.confirm('Are you sure you want to delete this form?')) {
+      setForms(forms.filter(f => f.id !== formId));
+      setFormSubmissions(formSubmissions.filter(s => s.formId !== formId));
+      toast.success('Form deleted successfully');
+    }
+  };
+
   const exportData = (data: any[], filename: string) => {
     const csv = convertToCSV(data);
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -327,6 +419,7 @@ export const AdminDashboard: React.FC = () => {
     { id: 'forms', name: 'Forms', icon: FileText, badge: stats.totalForms },
     { id: 'events', name: 'Events', icon: Calendar, badge: stats.totalEvents },
     { id: 'uploads', name: 'Uploads', icon: Upload, badge: stats.pendingUploads },
+    { id: 'ai', name: 'AI Training', icon: Brain },
     { id: 'settings', name: 'Settings', icon: Settings }
   ];
 
@@ -866,6 +959,143 @@ export const AdminDashboard: React.FC = () => {
           </motion.div>
         )}
 
+        {/* AI Training Tab */}
+        {activeTab === 'ai' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            <div className="grid lg:grid-cols-2 gap-8">
+              {/* AI Command Interface */}
+              <GlassCard className="p-6">
+                <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4">
+                  AI Command Interface
+                </h3>
+                
+                <div className="space-y-4">
+                  <div className="p-4 bg-white/5 rounded-lg min-h-[200px]">
+                    {aiResponse ? (
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium text-purple-400">AI Response:</div>
+                        <div className="text-gray-800 dark:text-white">{aiResponse}</div>
+                      </div>
+                    ) : (
+                      <div className="text-center text-gray-500 py-8">
+                        <Brain className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>AI Assistant ready for commands!</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleAICommand()}
+                      className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-800 dark:text-white"
+                      placeholder="Ask the AI assistant..."
+                    />
+                    <AnimatedButton
+                      variant="primary"
+                      onClick={handleAICommand}
+                      disabled={!aiPrompt.trim()}
+                    >
+                      Ask AI
+                    </AnimatedButton>
+                  </div>
+                </div>
+              </GlassCard>
+
+              {/* AI Training */}
+              <GlassCard className="p-6">
+                <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4">
+                  Train AI Assistant
+                </h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Training Prompt
+                    </label>
+                    <input
+                      type="text"
+                      value={newTrainingData.prompt}
+                      onChange={(e) => setNewTrainingData({ ...newTrainingData, prompt: e.target.value })}
+                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-800 dark:text-white"
+                      placeholder="Enter a question or command"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Expected Response
+                    </label>
+                    <textarea
+                      value={newTrainingData.response}
+                      onChange={(e) => setNewTrainingData({ ...newTrainingData, response: e.target.value })}
+                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-800 dark:text-white resize-none"
+                      rows={4}
+                      placeholder="Enter the expected response"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Category
+                    </label>
+                    <select
+                      value={newTrainingData.category}
+                      onChange={(e) => setNewTrainingData({ ...newTrainingData, category: e.target.value })}
+                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-800 dark:text-white"
+                    >
+                      <option value="general">General</option>
+                      <option value="alan_walker">Alan Walker</option>
+                      <option value="platform">Platform Help</option>
+                      <option value="moderation">Moderation</option>
+                      <option value="technical">Technical</option>
+                    </select>
+                  </div>
+                  
+                  <AnimatedButton
+                    variant="primary"
+                    onClick={handleTrainAI}
+                    disabled={!newTrainingData.prompt || !newTrainingData.response}
+                    className="w-full"
+                  >
+                    Add Training Data
+                  </AnimatedButton>
+                </div>
+
+                {/* Training Data List */}
+                <div className="mt-6">
+                  <h4 className="font-medium text-gray-800 dark:text-white mb-3">
+                    Training Data ({aiTrainingData.length})
+                  </h4>
+                  <ScrollableContainer maxHeight="200px">
+                    <div className="space-y-2">
+                      {aiTrainingData.slice(-10).map(data => (
+                        <div key={data.id} className="p-2 bg-white/5 rounded text-sm">
+                          <div className="font-medium text-gray-800 dark:text-white">
+                            {data.prompt}
+                          </div>
+                          <div className="text-gray-600 dark:text-gray-400 truncate">
+                            {data.response}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {data.category} • {format(new Date(data.addedAt), 'MMM dd')}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollableContainer>
+                </div>
+              </GlassCard>
+            </div>
+          </motion.div>
+        )}
+
         {/* Settings Tab */}
         {activeTab === 'settings' && systemSettings && (
           <motion.div
@@ -923,6 +1153,17 @@ export const AdminDashboard: React.FC = () => {
             </GlassCard>
           </motion.div>
         )}
+
+        {/* Form Builder Modal */}
+        <FormBuilder
+          isOpen={isFormBuilderOpen}
+          onClose={() => {
+            setIsFormBuilderOpen(false);
+            setEditingForm(null);
+          }}
+          onSave={handleSaveForm}
+          editingForm={editingForm}
+        />
       </div>
     </div>
   );
