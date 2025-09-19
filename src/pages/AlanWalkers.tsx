@@ -1,23 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Music, Play, Pause, Volume2, Heart, Share2, Clock, User, CheckCircle, XCircle, AlertCircle, Upload, Crown, Star, Zap } from 'lucide-react';
+import { 
+  Music, 
+  Play, 
+  Pause, 
+  Volume2, 
+  Heart, 
+  Share2, 
+  Clock, 
+  User, 
+  CheckCircle, 
+  XCircle, 
+  AlertCircle, 
+  Upload, 
+  Crown, 
+  Star, 
+  Zap,
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  Download
+} from 'lucide-react';
 import { GlassCard } from '../components/GlassCard';
 import { AnimatedButton } from '../components/AnimatedButton';
+import { ScrollableContainer } from '../components/ScrollableContainer';
 import { useAuth } from '../hooks/useAuth';
-import { fileService } from '../services/fileService';
-import { socketService } from '../services/socketService';
-import { AlanWalkerTrack, ApprovalRequest, WalkerLore } from '../types';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useRealtime } from '../contexts/RealtimeContext';
+import { AlanWalkerTrack } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
 export const AlanWalkers: React.FC = () => {
   const { user } = useAuth();
-  const [tracks, setTracks] = useState<AlanWalkerTrack[]>([]);
-  const [lore, setLore] = useState<WalkerLore[]>([]);
+  const { broadcastUpdate } = useRealtime();
+  const [tracks, setTracks] = useLocalStorage<AlanWalkerTrack[]>('rws-alan-tracks', []);
   const [isUploading, setIsUploading] = useState(false);
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'music' | 'lore' | 'upload'>('music');
+  const [activeTab, setActiveTab] = useState<'music' | 'upload' | 'admin'>('music');
   const [uploadForm, setUploadForm] = useState({
     title: '',
     artist: 'Alan Walker',
@@ -33,152 +55,125 @@ export const AlanWalkers: React.FC = () => {
   const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
-    loadTracks();
-    loadLore();
     initializeOfficialTracks();
   }, []);
 
-  const loadTracks = async () => {
-    try {
-      const allTracks = await fileService.readFile<AlanWalkerTrack>('alan_tracks.json', []);
-      setTracks(allTracks);
-    } catch (error) {
-      console.error('Error loading tracks:', error);
-    }
-  };
-
-  const loadLore = async () => {
-    try {
-      const allLore = await fileService.readFile<WalkerLore>('walker_lore.json', []);
-      setLore(allLore);
-    } catch (error) {
-      console.error('Error loading lore:', error);
-    }
-  };
-
   const initializeOfficialTracks = async () => {
-    try {
-      const existingTracks = await fileService.readFile<AlanWalkerTrack>('alan_tracks.json', []);
-      
-      if (existingTracks.length === 0) {
-        const officialTracks: AlanWalkerTrack[] = [
-          {
-            id: uuidv4(),
-            title: 'Faded',
-            artist: 'Alan Walker',
-            album: 'Different World',
-            releaseDate: '2015-12-03',
-            duration: '3:32',
-            youtubeUrl: 'https://www.youtube.com/watch?v=60ItHLz5WEA',
-            category: 'official',
-            isVerified: true,
-            uploadedBy: 'system',
-            uploadedAt: new Date().toISOString(),
-            approvedBy: 'system',
-            approvedAt: new Date().toISOString(),
-            tags: ['electronic', 'dance', 'vocal', 'emotional'],
-            lore: 'The breakthrough hit that launched Alan Walker into global stardom. The song explores themes of isolation and finding one\'s way back home.',
-            trivia: [
-              'First song to reach 1 billion views on YouTube by a Norwegian artist',
-              'Features vocals by Iselin Solheim',
-              'The music video was filmed in multiple locations across Europe'
-            ]
-          },
-          {
-            id: uuidv4(),
-            title: 'Alone',
-            artist: 'Alan Walker',
-            album: 'Different World',
-            releaseDate: '2016-12-02',
-            duration: '2:43',
-            youtubeUrl: 'https://www.youtube.com/watch?v=1-xGerv5FOk',
-            category: 'official',
-            isVerified: true,
-            uploadedBy: 'system',
-            uploadedAt: new Date().toISOString(),
-            approvedBy: 'system',
-            approvedAt: new Date().toISOString(),
-            tags: ['electronic', 'instrumental', 'energetic'],
-            lore: 'A powerful instrumental track that showcases Alan Walker\'s signature sound without vocals.',
-            trivia: [
-              'Originally created as a gaming soundtrack',
-              'Features the iconic Alan Walker melody progression',
-              'Popular choice for workout playlists'
-            ]
-          },
-          {
-            id: uuidv4(),
-            title: 'Sing Me to Sleep',
-            artist: 'Alan Walker',
-            album: 'Different World',
-            releaseDate: '2016-06-03',
-            duration: '3:07',
-            youtubeUrl: 'https://www.youtube.com/watch?v=2i2khp_npdE',
-            category: 'official',
-            isVerified: true,
-            uploadedBy: 'system',
-            uploadedAt: new Date().toISOString(),
-            approvedBy: 'system',
-            approvedAt: new Date().toISOString(),
-            tags: ['electronic', 'vocal', 'emotional', 'dreamy'],
-            lore: 'A haunting melody about finding peace and escape through music and dreams.',
-            trivia: [
-              'Features vocals by Iselin Solheim',
-              'The music video has a dreamlike, surreal quality',
-              'Often used in meditation and sleep playlists'
-            ]
-          },
-          {
-            id: uuidv4(),
-            title: 'Darkside',
-            artist: 'Alan Walker feat. Au/Ra and Tomine Harket',
-            album: 'Different World',
-            releaseDate: '2018-07-27',
-            duration: '3:14',
-            youtubeUrl: 'https://www.youtube.com/watch?v=M-P4QBt-FWw',
-            category: 'official',
-            isVerified: true,
-            uploadedBy: 'system',
-            uploadedAt: new Date().toISOString(),
-            approvedBy: 'system',
-            approvedAt: new Date().toISOString(),
-            tags: ['electronic', 'collaboration', 'dark', 'powerful'],
-            lore: 'A collaboration exploring the darker aspects of human nature and the struggle between light and shadow.',
-            trivia: [
-              'Features Au/Ra and Tomine Harket',
-              'Part of the Different World album',
-              'The music video features stunning visual effects'
-            ]
-          },
-          {
-            id: uuidv4(),
-            title: 'On My Way',
-            artist: 'Alan Walker, Sabrina Carpenter & Farruko',
-            album: 'Different World',
-            releaseDate: '2019-03-21',
-            duration: '3:14',
-            youtubeUrl: 'https://www.youtube.com/watch?v=dhYOPzcsbGM',
-            category: 'official',
-            isVerified: true,
-            uploadedBy: 'system',
-            uploadedAt: new Date().toISOString(),
-            approvedBy: 'system',
-            approvedAt: new Date().toISOString(),
-            tags: ['electronic', 'pop', 'collaboration', 'uplifting'],
-            lore: 'An uplifting anthem about perseverance and moving forward despite challenges.',
-            trivia: [
-              'Created for the PUBG Mobile soundtrack',
-              'Features Sabrina Carpenter and Farruko',
-              'Became a global gaming anthem'
-            ]
-          }
-        ];
+    if (tracks.length === 0) {
+      const officialTracks: AlanWalkerTrack[] = [
+        {
+          id: uuidv4(),
+          title: 'Faded',
+          artist: 'Alan Walker',
+          album: 'Different World',
+          releaseDate: '2015-12-03',
+          duration: '3:32',
+          youtubeUrl: 'https://www.youtube.com/watch?v=60ItHLz5WEA',
+          category: 'official',
+          isVerified: true,
+          uploadedBy: 'system',
+          uploadedAt: new Date().toISOString(),
+          approvedBy: 'system',
+          approvedAt: new Date().toISOString(),
+          tags: ['electronic', 'dance', 'vocal', 'emotional'],
+          lore: 'The breakthrough hit that launched Alan Walker into global stardom. The song explores themes of isolation and finding one\'s way back home.',
+          trivia: [
+            'First song to reach 1 billion views on YouTube by a Norwegian artist',
+            'Features vocals by Iselin Solheim',
+            'The music video was filmed in multiple locations across Europe'
+          ]
+        },
+        {
+          id: uuidv4(),
+          title: 'Alone',
+          artist: 'Alan Walker',
+          album: 'Different World',
+          releaseDate: '2016-12-02',
+          duration: '2:43',
+          youtubeUrl: 'https://www.youtube.com/watch?v=1-xGerv5FOk',
+          category: 'official',
+          isVerified: true,
+          uploadedBy: 'system',
+          uploadedAt: new Date().toISOString(),
+          approvedBy: 'system',
+          approvedAt: new Date().toISOString(),
+          tags: ['electronic', 'instrumental', 'energetic'],
+          lore: 'A powerful instrumental track that showcases Alan Walker\'s signature sound without vocals.',
+          trivia: [
+            'Originally created as a gaming soundtrack',
+            'Features the iconic Alan Walker melody progression',
+            'Popular choice for workout playlists'
+          ]
+        },
+        {
+          id: uuidv4(),
+          title: 'Sing Me to Sleep',
+          artist: 'Alan Walker',
+          album: 'Different World',
+          releaseDate: '2016-06-03',
+          duration: '3:07',
+          youtubeUrl: 'https://www.youtube.com/watch?v=2i2khp_npdE',
+          category: 'official',
+          isVerified: true,
+          uploadedBy: 'system',
+          uploadedAt: new Date().toISOString(),
+          approvedBy: 'system',
+          approvedAt: new Date().toISOString(),
+          tags: ['electronic', 'vocal', 'emotional', 'dreamy'],
+          lore: 'A haunting melody about finding peace and escape through music and dreams.',
+          trivia: [
+            'Features vocals by Iselin Solheim',
+            'The music video has a dreamlike, surreal quality',
+            'Often used in meditation and sleep playlists'
+          ]
+        },
+        {
+          id: uuidv4(),
+          title: 'Darkside',
+          artist: 'Alan Walker feat. Au/Ra and Tomine Harket',
+          album: 'Different World',
+          releaseDate: '2018-07-27',
+          duration: '3:14',
+          youtubeUrl: 'https://www.youtube.com/watch?v=M-P4QBt-FWw',
+          category: 'official',
+          isVerified: true,
+          uploadedBy: 'system',
+          uploadedAt: new Date().toISOString(),
+          approvedBy: 'system',
+          approvedAt: new Date().toISOString(),
+          tags: ['electronic', 'collaboration', 'dark', 'powerful'],
+          lore: 'A collaboration exploring the darker aspects of human nature and the struggle between light and shadow.',
+          trivia: [
+            'Features Au/Ra and Tomine Harket',
+            'Part of the Different World album',
+            'The music video features stunning visual effects'
+          ]
+        },
+        {
+          id: uuidv4(),
+          title: 'On My Way',
+          artist: 'Alan Walker, Sabrina Carpenter & Farruko',
+          album: 'Different World',
+          releaseDate: '2019-03-21',
+          duration: '3:14',
+          youtubeUrl: 'https://www.youtube.com/watch?v=dhYOPzcsbGM',
+          category: 'official',
+          isVerified: true,
+          uploadedBy: 'system',
+          uploadedAt: new Date().toISOString(),
+          approvedBy: 'system',
+          approvedAt: new Date().toISOString(),
+          tags: ['electronic', 'pop', 'collaboration', 'uplifting'],
+          lore: 'An uplifting anthem about perseverance and moving forward despite challenges.',
+          trivia: [
+            'Created for the PUBG Mobile soundtrack',
+            'Features Sabrina Carpenter and Farruko',
+            'Became a global gaming anthem'
+          ]
+        }
+      ];
 
-        await fileService.writeFile('alan_tracks.json', officialTracks);
-        setTracks(officialTracks);
-      }
-    } catch (error) {
-      console.error('Error initializing official tracks:', error);
+      setTracks(officialTracks);
     }
   };
 
@@ -208,21 +203,9 @@ export const AlanWalkers: React.FC = () => {
         trivia: uploadForm.trivia ? uploadForm.trivia.split('\n').map(t => t.trim()).filter(Boolean) : undefined
       };
 
-      await fileService.appendToFile('alan_tracks.json', newTrack);
+      setTracks([...tracks, newTrack]);
 
       if (user.role !== 'admin') {
-        // Create approval request
-        const approvalRequest: ApprovalRequest = {
-          id: uuidv4(),
-          type: 'song',
-          itemId: newTrack.id,
-          requestedBy: user.id,
-          requestedAt: new Date().toISOString(),
-          status: 'pending'
-        };
-
-        await fileService.saveApprovalRequest(approvalRequest);
-        socketService.emit('approval_requested', approvalRequest);
         toast.success('Track uploaded! Waiting for admin approval.');
       } else {
         toast.success('Track uploaded and approved!');
@@ -240,7 +223,7 @@ export const AlanWalkers: React.FC = () => {
         trivia: ''
       });
 
-      loadTracks();
+      broadcastUpdate('track_uploaded', newTrack);
     } catch (error) {
       console.error('Upload error:', error);
       toast.error('Failed to upload track');
@@ -252,30 +235,30 @@ export const AlanWalkers: React.FC = () => {
   const handleApproval = async (trackId: string, approved: boolean, rejectionReason?: string) => {
     if (!isAdmin) return;
 
-    try {
-      await fileService.updateInFile('alan_tracks.json', trackId, {
-        isVerified: approved,
-        approvedBy: user!.id,
-        approvedAt: approved ? new Date().toISOString() : undefined
-      });
+    const updatedTracks = tracks.map(track => 
+      track.id === trackId 
+        ? {
+            ...track,
+            isVerified: approved,
+            approvedBy: user!.id,
+            approvedAt: approved ? new Date().toISOString() : undefined,
+            rejectionReason: approved ? undefined : rejectionReason
+          }
+        : track
+    );
 
-      // Update approval request
-      const approvals = await fileService.getApprovalRequests();
-      const approval = approvals.find(a => a.itemId === trackId && a.type === 'song');
-      if (approval) {
-        await fileService.updateApprovalRequest(approval.id, {
-          status: approved ? 'approved' : 'rejected',
-          reviewedBy: user!.id,
-          reviewedAt: new Date().toISOString(),
-          rejectionReason
-        });
-      }
+    setTracks(updatedTracks);
+    toast.success(`Track ${approved ? 'approved' : 'rejected'} successfully`);
+    broadcastUpdate('track_approval', { trackId, approved });
+  };
 
-      toast.success(`Track ${approved ? 'approved' : 'rejected'} successfully`);
-      loadTracks();
-    } catch (error) {
-      console.error('Approval error:', error);
-      toast.error('Failed to process approval');
+  const handleDeleteTrack = (trackId: string) => {
+    if (!isAdmin) return;
+    
+    if (window.confirm('Are you sure you want to delete this track?')) {
+      setTracks(tracks.filter(t => t.id !== trackId));
+      toast.success('Track deleted successfully');
+      broadcastUpdate('track_deleted', { trackId });
     }
   };
 
@@ -306,7 +289,7 @@ export const AlanWalkers: React.FC = () => {
             <span className="text-lg font-semibold text-blue-400">Alan Walker Universe</span>
           </div>
           <h1 className="text-5xl md:text-7xl font-bold mb-8 bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent animate-gradient">
-            Alan Walkers
+            Music Hub
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-400 max-w-4xl mx-auto leading-relaxed">
             Dive deep into the world of Alan Walker - official tracks, remixes, lore, and fan creations
@@ -318,8 +301,8 @@ export const AlanWalkers: React.FC = () => {
           <div className="flex bg-white/10 backdrop-blur-xl rounded-2xl p-2 shadow-lg">
             {[
               { id: 'music', name: 'Music Hub', icon: Music },
-              { id: 'lore', name: 'Walker Lore', icon: Star },
-              { id: 'upload', name: 'Upload Track', icon: Upload }
+              { id: 'upload', name: 'Upload Track', icon: Upload },
+              ...(isAdmin ? [{ id: 'admin', name: 'Admin Panel', icon: Crown }] : [])
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -340,7 +323,7 @@ export const AlanWalkers: React.FC = () => {
           </div>
         </div>
 
-        {/* Pending Approvals (Admin only) */}
+        {/* Admin Panel - Pending Approvals */}
         {isAdmin && pendingTracks.length > 0 && (
           <GlassCard className="p-6 mb-8">
             <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-6 flex items-center">
@@ -492,12 +475,14 @@ export const AlanWalkers: React.FC = () => {
                       </div>
                       
                       {track.youtubeUrl && (
-                        <button
-                          onClick={() => setCurrentlyPlaying(currentlyPlaying === track.id ? null : track.id)}
+                        <a
+                          href={track.youtubeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="p-2 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-colors"
                         >
                           <Volume2 className="w-4 h-4" />
-                        </button>
+                        </a>
                       )}
                     </div>
 
@@ -646,18 +631,94 @@ export const AlanWalkers: React.FC = () => {
           </div>
         )}
 
-        {/* Lore Tab */}
-        {activeTab === 'lore' && (
-          <div className="max-w-4xl mx-auto">
-            <GlassCard className="p-8">
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center">
-                <Star className="w-6 h-6 mr-2 text-yellow-500" />
-                Walker Lore Archive
+        {/* Admin Panel Tab */}
+        {activeTab === 'admin' && isAdmin && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                Music Hub Administration
               </h2>
-              <p className="text-gray-600 dark:text-gray-400 text-center py-12">
-                The Walker Lore Archive is being compiled by our warriors. Check back soon for deep insights into Alan Walker's musical journey, production secrets, and hidden meanings behind the tracks.
-              </p>
-            </GlassCard>
+              <div className="flex space-x-4">
+                <AnimatedButton
+                  variant="secondary"
+                  icon={Download}
+                  onClick={() => {
+                    const csvData = tracks.map(track => ({
+                      title: track.title,
+                      artist: track.artist,
+                      album: track.album || '',
+                      category: track.category,
+                      verified: track.isVerified ? 'Yes' : 'No',
+                      uploadedAt: track.uploadedAt
+                    }));
+                    // Export logic would go here
+                    toast.success('Track data exported!');
+                  }}
+                >
+                  Export Tracks
+                </AnimatedButton>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {tracks.map(track => (
+                <GlassCard key={track.id} className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      track.category === 'official' ? 'bg-blue-500/20 text-blue-400' :
+                      track.category === 'remix' ? 'bg-purple-500/20 text-purple-400' :
+                      track.category === 'fan_creation' ? 'bg-green-500/20 text-green-400' :
+                      'bg-gray-500/20 text-gray-400'
+                    }`}>
+                      {track.category.toUpperCase()}
+                    </span>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => handleApproval(track.id, !track.isVerified)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          track.isVerified
+                            ? 'bg-green-500/20 text-green-400'
+                            : 'bg-gray-500/20 text-gray-400'
+                        }`}
+                      >
+                        {track.isVerified ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTrack(track.id)}
+                        className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-2">
+                    {track.title}
+                  </h3>
+                  
+                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                    by {track.artist}
+                  </p>
+
+                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                    <span>Uploaded: {format(new Date(track.uploadedAt), 'MMM dd, yyyy')}</span>
+                    <span>{track.isVerified ? 'Verified' : 'Pending'}</span>
+                  </div>
+
+                  {track.youtubeUrl && (
+                    <a
+                      href={track.youtubeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full text-center p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
+                    >
+                      <Eye className="w-4 h-4 inline mr-2" />
+                      View on YouTube
+                    </a>
+                  )}
+                </GlassCard>
+              ))}
+            </div>
           </div>
         )}
 
