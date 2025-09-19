@@ -42,6 +42,20 @@ class AuthService {
         lastActive: new Date().toISOString(),
         isOnline: false,
         isBanned: false,
+        bio: 'Founder and Supreme Commander of Royal Warriors Squad',
+        location: 'Command Center',
+        level: 100,
+        xp: 999999,
+        achievements: ['Founder', 'Supreme Commander', 'Platform Creator', 'God Mode'],
+        activityLog: [
+          {
+            id: uuidv4(),
+            description: 'Platform initialized and admin powers activated',
+            timestamp: new Date().toISOString(),
+            xpGained: 0,
+            type: 'system'
+          }
+        ],
         stats: {
           messagesCount: 0,
           formsSubmitted: 0,
